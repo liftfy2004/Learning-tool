@@ -1,0 +1,23 @@
+{
+  "name": "StudyGen AI",
+  "short_name": "StudyGen",
+  "description": "แปลง PDF เป็น สไลด์, เอกสาร, Flashcard อัตโนมัติด้วย AI",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#07090f",
+  "theme_color": "#07090f",
+  "icons": [
+    {
+      "src": "icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
