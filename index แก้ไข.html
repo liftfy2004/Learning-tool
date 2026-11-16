@@ -1,0 +1,2603 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#07090f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="StudyGen">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-180.png">
+
+  <title>StudyGen AI — PDF to Study Materials</title>
+  <meta name="description" content="แปลง PDF เป็น สไลด์, เอกสาร, Flashcard อัตโนมัติด้วย AI">
+
+  <!-- Design System -->
+  <style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ─── Design Tokens ─────────────────────────────────────────── */
+:root {
+  --bg-base:        #07090f;
+  --bg-surface:     #0d1121;
+  --bg-card:        rgba(255,255,255,0.045);
+  --bg-card-hover:  rgba(255,255,255,0.075);
+  --bg-input:       rgba(255,255,255,0.06);
+
+  --border:         rgba(255,255,255,0.08);
+  --border-focus:   rgba(99,102,241,0.6);
+  --border-drag:    rgba(99,102,241,0.4);
+
+  --accent:         #6366f1;
+  --accent-light:   #818cf8;
+  --accent-2:       #a78bfa;
+  --accent-grad:    linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
+  --accent-glow:    rgba(99,102,241,0.25);
+
+  --success:        #10b981;
+  --success-bg:     rgba(16,185,129,0.1);
+  --warning:        #f59e0b;
+  --warning-bg:     rgba(245,158,11,0.1);
+  --error:          #ef4444;
+  --error-bg:       rgba(239,68,68,0.1);
+  --info:           #38bdf8;
+  --info-bg:        rgba(56,189,248,0.1);
+
+  --text-1:         #f1f5f9;
+  --text-2:         #94a3b8;
+  --text-3:         #64748b;
+
+  --r-sm:  8px;
+  --r-md:  12px;
+  --r-lg:  16px;
+  --r-xl:  24px;
+  --r-2xl: 32px;
+
+  --shadow-sm:   0 2px 8px rgba(0,0,0,0.3);
+  --shadow-md:   0 4px 24px rgba(0,0,0,0.4);
+  --shadow-glow: 0 0 48px rgba(99,102,241,0.18);
+  --shadow-btn:  0 4px 16px rgba(99,102,241,0.35);
+
+  --ease: cubic-bezier(0.4,0,0.2,1);
+  --t:    0.2s var(--ease);
+}
+
+/* ─── Reset ─────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg-base);
+  color: var(--text-1);
+  min-height: 100vh;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ─── Background Orbs ───────────────────────────────────────── */
+body::before, body::after {
+  content: '';
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(100px);
+  pointer-events: none;
+  z-index: 0;
+}
+body::before {
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%);
+  top: -200px; left: -200px;
+}
+body::after {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(167,139,250,0.08) 0%, transparent 70%);
+  bottom: -150px; right: -150px;
+}
+
+.app-wrapper {
+  position: relative;
+  z-index: 1;
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 24px 16px 80px;
+}
+
+/* ─── Header ─────────────────────────────────────────────────── */
+.app-header {
+  text-align: center;
+  padding: 48px 0 40px;
+}
+.app-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.logo-icon {
+  width: 52px; height: 52px;
+  background: var(--accent-grad);
+  border-radius: var(--r-lg);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px;
+  box-shadow: var(--shadow-btn);
+}
+.logo-text {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: var(--accent-grad);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.app-tagline {
+  color: var(--text-2);
+  font-size: 15px;
+  max-width: 480px;
+  margin: 0 auto;
+  line-height: 1.7;
+}
+
+/* ─── Cards ──────────────────────────────────────────────────── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: 24px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: var(--t);
+  margin-bottom: 20px;
+}
+.card:hover { background: var(--bg-card-hover); }
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.card-step {
+  width: 28px; height: 28px;
+  background: var(--accent-grad);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.card-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-1);
+}
+.card-subtitle {
+  font-size: 13px;
+  color: var(--text-3);
+  margin-top: 2px;
+}
+
+/* ─── Provider Tabs ──────────────────────────────────────────── */
+.provider-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  background: rgba(0,0,0,0.2);
+  padding: 4px;
+  border-radius: var(--r-md);
+}
+.provider-tab {
+  flex: 1;
+  padding: 10px 16px;
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-3);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--t);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.provider-tab:hover { color: var(--text-2); background: rgba(255,255,255,0.05); }
+.provider-tab.active {
+  background: var(--accent-grad);
+  color: white;
+  box-shadow: var(--shadow-btn);
+}
+
+/* ─── Inputs ─────────────────────────────────────────────────── */
+.input-group { margin-bottom: 14px; }
+.input-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+.input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.input-wrap svg {
+  position: absolute;
+  left: 14px;
+  color: var(--text-3);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+input[type="text"],
+input[type="password"],
+select {
+  width: 100%;
+  padding: 12px 14px 12px 42px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  color: var(--text-1);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  outline: none;
+  transition: var(--t);
+  -webkit-appearance: none;
+}
+input[type="text"]:focus,
+input[type="password"]:focus,
+select:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+  background: rgba(255,255,255,0.08);
+}
+input::placeholder { color: var(--text-3); font-family: 'Inter', sans-serif; }
+
+.toggle-key {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  color: var(--text-3);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  transition: var(--t);
+}
+.toggle-key:hover { color: var(--text-1); }
+
+.model-hint {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: var(--info-bg);
+  border: 1px solid rgba(56,189,248,0.2);
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  color: var(--info);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ─── Upload Zone ─────────────────────────────────────────────── */
+.upload-zone {
+  border: 2px dashed var(--border-drag);
+  border-radius: var(--r-xl);
+  padding: 48px 32px;
+  text-align: center;
+  cursor: pointer;
+  transition: var(--t);
+  position: relative;
+  overflow: hidden;
+}
+.upload-zone::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(99,102,241,0.03) 0%, rgba(167,139,250,0.03) 100%);
+  opacity: 0;
+  transition: var(--t);
+}
+.upload-zone:hover::before,
+.upload-zone.drag-over::before { opacity: 1; }
+.upload-zone:hover,
+.upload-zone.drag-over {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-glow);
+}
+
+.upload-icon {
+  width: 72px; height: 72px;
+  background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(167,139,250,0.15));
+  border-radius: var(--r-xl);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 20px;
+  font-size: 36px;
+  transition: var(--t);
+}
+.upload-zone:hover .upload-icon { transform: scale(1.05); }
+
+.upload-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-1);
+  margin-bottom: 8px;
+}
+.upload-subtitle {
+  font-size: 13px;
+  color: var(--text-3);
+  margin-bottom: 20px;
+}
+
+.upload-input { display: none; }
+
+.upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: rgba(99,102,241,0.15);
+  border: 1px solid rgba(99,102,241,0.3);
+  border-radius: var(--r-md);
+  color: var(--accent-light);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--t);
+}
+.upload-btn:hover {
+  background: rgba(99,102,241,0.25);
+  border-color: var(--accent);
+}
+
+/* ─── File Preview ────────────────────────────────────────────── */
+.file-preview {
+  display: none;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  background: rgba(16,185,129,0.08);
+  border: 1px solid rgba(16,185,129,0.2);
+  border-radius: var(--r-lg);
+  margin-top: 16px;
+}
+.file-preview.show { display: flex; }
+.file-icon-wrap {
+  width: 44px; height: 44px;
+  background: rgba(239,68,68,0.15);
+  border-radius: var(--r-md);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.file-info { flex: 1; min-width: 0; }
+.file-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.file-meta { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+.file-remove {
+  background: none; border: none;
+  color: var(--text-3); cursor: pointer;
+  padding: 6px; border-radius: 6px; transition: var(--t);
+  display: flex; align-items: center;
+}
+.file-remove:hover { color: var(--error); background: var(--error-bg); }
+
+/* ─── Action Button ───────────────────────────────────────────── */
+.btn-primary {
+  width: 100%;
+  padding: 16px 24px;
+  background: var(--accent-grad);
+  border: none;
+  border-radius: var(--r-lg);
+  color: white;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--t);
+  box-shadow: var(--shadow-btn);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  letter-spacing: -0.2px;
+  margin-top: 16px;
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(99,102,241,0.45);
+}
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ─── Progress Section ────────────────────────────────────────── */
+.progress-section {
+  display: none;
+  animation: fadeSlideUp 0.4s var(--ease);
+}
+.progress-section.show { display: block; }
+
+.progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.progress-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-1);
+}
+.progress-pct {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-light);
+}
+
+.progress-bar-wrap {
+  height: 6px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 100px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: var(--accent-grad);
+  border-radius: 100px;
+  transition: width 0.4s var(--ease);
+  position: relative;
+  overflow: hidden;
+}
+.progress-bar-fill::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%; right: 0; bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: shimmer 1.5s infinite;
+}
+
+.progress-status {
+  font-size: 13px;
+  color: var(--text-3);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.spinner {
+  width: 14px; height: 14px;
+  border: 2px solid rgba(99,102,241,0.3);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+.batch-log {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.batch-log::-webkit-scrollbar { width: 4px; }
+.batch-log::-webkit-scrollbar-track { background: transparent; }
+.batch-log::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.batch-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.03);
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  color: var(--text-3);
+}
+.batch-item.done { color: var(--success); }
+.batch-item.active { color: var(--accent-light); }
+.batch-status { font-size: 14px; }
+
+/* ─── Results Section ─────────────────────────────────────────── */
+.results-section {
+  display: none;
+  animation: fadeSlideUp 0.5s var(--ease);
+}
+.results-section.show { display: block; }
+
+.results-header {
+  text-align: center;
+  padding: 32px 0 24px;
+}
+.results-emoji { font-size: 48px; margin-bottom: 12px; }
+.results-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-1);
+  margin-bottom: 8px;
+}
+.results-subtitle { font-size: 14px; color: var(--text-3); }
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px;
+  text-align: center;
+  backdrop-filter: blur(12px);
+}
+.stat-num {
+  font-size: 28px;
+  font-weight: 800;
+  background: var(--accent-grad);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.stat-label { font-size: 11px; color: var(--text-3); font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; }
+
+.download-grid {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.dl-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  transition: var(--t);
+  backdrop-filter: blur(12px);
+}
+.dl-card:hover {
+  background: var(--bg-card-hover);
+  border-color: rgba(99,102,241,0.3);
+  transform: translateX(2px);
+}
+.dl-icon {
+  width: 48px; height: 48px;
+  border-radius: var(--r-md);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+.dl-icon.doc  { background: rgba(56,189,248,0.15); }
+.dl-icon.slide { background: rgba(249,115,22,0.15); }
+.dl-icon.anki { background: rgba(16,185,129,0.15); }
+.dl-icon.quizlet { background: rgba(99,102,241,0.15); }
+
+.dl-info { flex: 1; }
+.dl-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-1);
+  margin-bottom: 3px;
+}
+.dl-desc { font-size: 12px; color: var(--text-3); }
+
+.dl-btn {
+  padding: 9px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: rgba(255,255,255,0.05);
+  color: var(--text-2);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--t);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.dl-btn:hover {
+  background: var(--accent-grad);
+  border-color: transparent;
+  color: white;
+  box-shadow: var(--shadow-btn);
+}
+
+.btn-download-all {
+  width: 100%;
+  padding: 16px 24px;
+  background: var(--accent-grad);
+  border: none;
+  border-radius: var(--r-lg);
+  color: white;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--t);
+  box-shadow: var(--shadow-btn);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.btn-download-all:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(99,102,241,0.45);
+}
+
+.btn-restart {
+  width: 100%;
+  padding: 13px 24px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  color: var(--text-2);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--t);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.btn-restart:hover {
+  background: rgba(255,255,255,0.08);
+  color: var(--text-1);
+}
+
+/* ─── Error Toast ─────────────────────────────────────────────── */
+.error-toast {
+  display: none;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--error-bg);
+  border: 1px solid rgba(239,68,68,0.3);
+  border-radius: var(--r-md);
+  margin-top: 12px;
+}
+.error-toast.show { display: flex; }
+.error-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+.error-text { font-size: 13px; color: var(--error); line-height: 1.5; }
+
+/* ─── Slide Preview Info ──────────────────────────────────────── */
+.slide-print-info {
+  margin-top: 10px;
+  padding: 10px 14px;
+  background: var(--warning-bg);
+  border: 1px solid rgba(245,158,11,0.2);
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  color: var(--warning);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ─── Animations ──────────────────────────────────────────────── */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes shimmer {
+  to { left: 200%; }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ─── Scrollbar ───────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+
+/* ─── Mobile ──────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .app-header { padding: 32px 0 24px; }
+  .logo-text { font-size: 22px; }
+  .stats-row { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .stat-num { font-size: 22px; }
+  .dl-card { flex-wrap: wrap; }
+  .dl-btn { width: 100%; justify-content: center; }
+  .provider-tabs { flex-direction: column; }
+}
+
+select option{background:#0d1121;color:#f1f5f9}
+</style>
+
+  <!-- PDF.js (render PDF pages to canvas) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js"></script>
+</head>
+<body>
+
+<div class="app-wrapper">
+
+  <!-- ── HEADER ──────────────────────────────────────── -->
+  <header class="app-header">
+    <div class="app-logo">
+      <div class="logo-icon">📚</div>
+      <div class="logo-text">StudyGen AI</div>
+    </div>
+    <p class="app-tagline">
+      อัปโหลด PDF → AI วิเคราะห์ทุกหน้า → ได้ สไลด์ + เอกสาร + Flashcard ทันที
+    </p>
+  </header>
+
+  <!-- ══════════════════════════════════════════════════
+       UPLOAD VIEW
+       ══════════════════════════════════════════════════ -->
+  <div id="upload-view">
+
+    <!-- Step 1: API Configuration -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-step">1</div>
+        <div>
+          <div class="card-title">AI Provider &amp; API Key</div>
+          <div class="card-subtitle">เลือก provider และกรอก API Key ของคุณ — ข้อมูลไม่ถูกบันทึกที่ใด</div>
+        </div>
+      </div>
+
+      <!-- Provider Tabs -->
+      <div class="provider-tabs">
+        <button class="provider-tab active" data-provider="gemini" id="tab-gemini">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
+          Gemini
+        </button>
+        <button class="provider-tab" data-provider="openai" id="tab-openai">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 6v6l4 2" fill="none" stroke="white" stroke-width="1.5"/>
+          </svg>
+          OpenAI
+        </button>
+        <button class="provider-tab" data-provider="claude" id="tab-claude">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
+          </svg>
+          Claude
+        </button>
+      </div>
+
+      <!-- API Key Input -->
+      <div class="input-group">
+        <label class="input-label" for="access-code-input">รหัส</label>
+        <div class="input-wrap">
+          <input type="text" id="access-code-input" placeholder="กรอกรหัส" autocomplete="off" style="padding-left:14px">
+        </div>
+      </div>
+      <div class="input-group">
+        <label class="input-label" for="api-key-input">API Key</label>
+        <div class="input-wrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          <input
+            type="password"
+            id="api-key-input"
+            placeholder="sk-... หรือ AIzaSy... หรือ sk-ant-..."
+            autocomplete="off"
+            spellcheck="false"
+          >
+          <button class="toggle-key" id="toggle-key-btn" type="button" title="Show/hide key">
+            <span id="toggle-key-icon">👁️</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Model name override -->
+      <div class="input-group" style="margin-top:4px">
+        <label class="input-label" for="model-input">Model Name <span style="font-weight:400;text-transform:none;letter-spacing:0">(ดึงจาก key ของคุณ)</span></label>
+        <div class="input-wrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
+          </svg>
+          <select id="model-input" style="font-family:'JetBrains Mono',monospace"></select>
+          </div>
+      </div>
+
+      <!-- Model hint -->
+      <button type="button" id="test-btn" class="dl-btn" style="margin-top:10px;width:100%;justify-content:center">🔌 ทดสอบเชื่อมต่อ &amp; โหลดรายชื่อ model</button>
+      <div class="input-group" style="margin-top:12px">
+        <label class="input-label" for="batch-input">จำนวนหน้าต่อ batch <span style="font-weight:400;text-transform:none;letter-spacing:0">(น้อย = ส่งไฟล์เล็กลง เสถียรกว่า)</span></label>
+        <select id="batch-input" style="padding-left:14px"><option>1</option><option>3</option><option selected>5</option><option>7</option><option>10</option></select>
+      </div>
+      <div class="input-group" style="margin-top:12px">
+        <label class="input-label" for="concurrency-input">ประมวลผลพร้อมกัน <span style="font-weight:400;text-transform:none;letter-spacing:0">(มาก = เร็วขึ้น แต่เสี่ยงโดน limit)</span></label>
+        <select id="concurrency-input" style="padding-left:14px"><option>1</option><option selected>2</option><option>3</option></select>
+      </div>
+      <div class="input-group" style="margin-top:12px">
+        <label class="input-label" for="level-input">ความยาวสไลด์ <span style="font-weight:400;text-transform:none;letter-spacing:0">(เน้นเฉพาะเนื้อหาสำคัญ)</span></label>
+        <select id="level-input" style="padding-left:14px"><option value="compact">กระชับ — สไลด์น้อยสุด</option><option value="balanced" selected>สมดุล — แนะนำ</option><option value="detailed">ละเอียด — ครบที่สุด</option></select>
+      </div>
+      <pre id="diag" style="display:none;margin-top:10px;padding:10px 12px;background:rgba(0,0,0,.3);border-radius:8px;font-size:11px;white-space:pre-wrap;color:var(--text-2)"></pre>
+      <div class="model-hint" id="model-hint"></div>
+
+      <!-- Error toast -->
+      <div class="error-toast" id="error-toast">
+        <div class="error-icon">⚠️</div>
+        <div class="error-text" id="error-text"></div>
+      </div>
+    </div>
+
+    <!-- Step 2: Upload PDF -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-step">2</div>
+        <div>
+          <div class="card-title">Upload PDF</div>
+          <div class="card-subtitle">ลาก &amp; วาง หรือคลิกเพื่อเลือกไฟล์</div>
+        </div>
+      </div>
+
+      <div class="upload-zone" id="upload-zone" role="button" tabindex="0"
+           aria-label="Upload PDF file">
+        <div class="upload-icon">📄</div>
+        <div class="upload-title">วาง PDF ที่นี่</div>
+        <div class="upload-subtitle">รองรับ PDF ทุกขนาด — อ่านทีละ 5 หน้า</div>
+        <label class="upload-btn" for="pdf-input">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          เลือกไฟล์ PDF
+        </label>
+        <input type="file" id="pdf-input" class="upload-input" accept=".pdf,application/pdf">
+      </div>
+
+      <!-- File preview -->
+      <div class="file-preview" id="file-preview">
+        <div class="file-icon-wrap">📕</div>
+        <div class="file-info">
+          <div class="file-name" id="file-name">filename.pdf</div>
+          <div class="file-meta" id="file-meta">0 KB • PDF</div>
+        </div>
+        <button class="file-remove" id="file-remove" title="Remove file">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 3: Process -->
+    <button class="btn-primary" id="process-btn" disabled>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polygon points="5 3 19 12 5 21 5 3"/>
+      </svg>
+      วิเคราะห์และสร้างสื่อการเรียน
+    </button>
+
+    <div class="slide-print-info">
+      ⏱️ เวลาประมวลผลขึ้นอยู่กับจำนวนหน้า — ทุก 5 หน้า ≈ 15–30 วินาที
+    </div>
+
+  </div><!-- /upload-view -->
+
+
+  <!-- ══════════════════════════════════════════════════
+       PROGRESS VIEW
+       ══════════════════════════════════════════════════ -->
+  <div class="progress-section" id="progress-section">
+    <div class="card">
+      <div class="card-header">
+        <div style="font-size:28px">🧠</div>
+        <div>
+          <div class="card-title">AI กำลังวิเคราะห์ PDF ของคุณ...</div>
+          <div class="card-subtitle">กรุณารอสักครู่ — อย่าปิดหน้าต่างนี้</div>
+        </div>
+      </div>
+
+      <div class="progress-header">
+        <div class="progress-title" id="progress-status-text">Starting...</div>
+        <div class="progress-pct" id="progress-pct">0%</div>
+      </div>
+
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+
+      <div class="progress-status">
+        <div class="spinner"></div>
+        <span id="progress-detail">Initializing PDF.js...</span>
+      </div>
+
+      <div id="progress-eta" style="margin-top:10px;padding:10px 14px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:8px;font-size:13px;color:var(--accent-light);font-weight:600"></div>
+
+      <div class="batch-log" id="batch-log"></div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════
+       RESULTS VIEW
+       ══════════════════════════════════════════════════ -->
+  <div class="results-section" id="results-section">
+
+    <div class="results-header">
+      <div class="results-emoji">🎉</div>
+      <div class="results-title" id="results-title-text">Study Materials Ready!</div>
+      <div class="results-subtitle">ดาวน์โหลดไฟล์ด้านล่าง — เปิดสไลด์ใน browser แล้ว Print → PDF</div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-num" id="stat-sections">0</div>
+        <div class="stat-label">Sections</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="stat-takeaways">0</div>
+        <div class="stat-label">Key Points</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="stat-flashcards">0</div>
+        <div class="stat-label">Flashcards</div>
+      </div>
+    </div>
+
+    <!-- Download All -->
+    <button class="btn-download-all" id="dl-all">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      ดาวน์โหลดทั้งหมด (4 ไฟล์)
+    </button>
+
+    <!-- Individual Downloads -->
+    <div class="download-grid">
+
+      <!-- Document -->
+      <div class="dl-card">
+        <div class="dl-icon doc">📄</div>
+        <div class="dl-info">
+          <div class="dl-name">เอกสารอ่าน</div>
+          <div class="dl-desc">HTML พร้อมคำอธิบาย (ไทย), ตาราง, Key Takeaways, Flashcards</div>
+        </div>
+        <button class="dl-btn" id="dl-document">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          </svg>
+          .html
+        </button>
+      </div>
+
+      <!-- Slides -->
+      <div class="dl-card">
+        <div class="dl-icon slide">🖼️</div>
+        <div class="dl-info">
+          <div class="dl-name">สไลด์ → PDF</div>
+          <div class="dl-desc">เปิดใน browser → Print → PDF (A4 Landscape, พื้นขาว)</div>
+        </div>
+        <button class="dl-btn" id="dl-slides">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          </svg>
+          .html
+        </button>
+      </div>
+
+      <!-- Anki -->
+      <div class="dl-card">
+        <div class="dl-icon anki">🃏</div>
+        <div class="dl-info">
+          <div class="dl-name">Anki Flashcards</div>
+          <div class="dl-desc">Import: Anki → File → Import → เลือกไฟล์ .txt นี้</div>
+        </div>
+        <button class="dl-btn" id="dl-anki">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          </svg>
+          Anki .txt
+        </button>
+      </div>
+
+      <!-- Quizlet -->
+      <div class="dl-card">
+        <div class="dl-icon quizlet">📊</div>
+        <div class="dl-info">
+          <div class="dl-name">Quizlet Flashcards</div>
+          <div class="dl-desc">Import: Quizlet → Create → Import → paste หรือ upload .csv</div>
+        </div>
+        <button class="dl-btn" id="dl-quizlet">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          </svg>
+          Quizlet .csv
+        </button>
+      </div>
+
+    </div><!-- /download-grid -->
+
+    <!-- Slide print hint -->
+    <div class="slide-print-info">
+      🖨️ วิธีทำ Slide PDF: เปิดไฟล์ slides.html ใน browser → กด Ctrl+P (Cmd+P บน Mac) →
+      เลือก A4 Landscape → No margins → Save as PDF
+    </div>
+
+    <!-- Restart -->
+    <button class="btn-restart" id="btn-restart" style="margin-top:16px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="1 4 1 10 7 10"/>
+        <path d="M3.51 15a9 9 0 1 0 .49-3.72"/>
+      </svg>
+      เริ่มใหม่กับ PDF อื่น
+    </button>
+
+  </div><!-- /results-section -->
+
+</div><!-- /app-wrapper -->
+
+<!-- Scripts (order matters: generators first, then app) -->
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   generators.js — Output Generators
+   Creates: HTML Document, Slides HTML, Anki CSV, Quizlet CSV
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Helpers ─────────────────────────────────────────────────── */
+function escapeHTML(str) {
+  return String(str == null ? '' : str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+// LaTeX → readable text (used when KaTeX is unavailable or the model wrote bare LaTeX)
+const TEX_FIX = [
+  [/\\text\{([^}]*)\}/g,'$1'], [/\\mathrm\{([^}]*)\}/g,'$1'], [/\\mathbf\{([^}]*)\}/g,'$1'],
+  [/\\times/g,'×'], [/\\cdot/g,'·'], [/\\approx/g,'≈'], [/\\le(?![a-zA-Z])/g,'≤'], [/\\ge(?![a-zA-Z])/g,'≥'],
+  [/\\rightarrow|\\to/g,'→'], [/\\leftarrow/g,'←'], [/\\pm/g,'±'], [/\\mu/g,'μ'], [/\\,|\\;|\\!/g,' '],
+  [/\^\{([^}]*)\}/g,'^$1'], [/_\{([^}]*)\}/g,'_$1'], [/[{}]/g,'']
+];
+function unescHTML(s) { return s.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&'); }
+function renderTex(src, display) {
+  if (window.katex) {
+    try { return katex.renderToString(src, { throwOnError: false, displayMode: display }); } catch (e) {}
+  }
+  let s = src;
+  TEX_FIX.forEach(([re, r]) => { s = s.replace(re, r); });
+  return escapeHTML(s);
+}
+// input is already HTML-escaped; $...$ and $$...$$ become math
+function mathHTML(escaped) {
+  return escaped.replace(/\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g,
+    (m, a, b) => renderTex(unescHTML(a != null ? a : b), a != null));
+}
+// escape + math + **bold** + `code`
+function fmt(t) {
+  let s = escapeHTML(t);
+  if (s.indexOf('$') !== -1) s = mathHTML(s);
+  else if (/\\[a-zA-Z]/.test(s)) TEX_FIX.forEach(([re, r]) => { s = s.replace(re, r); });
+  return s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/`(.+?)`/g,'<code>$1</code>');
+}
+function bullets(t) {
+  return String(t || '').split(/\n+/).map(x => x.replace(/^[\s•\-–*·\d.)]+/, '').trim()).filter(Boolean);
+}
+function parseMdTable(md) {
+  // ทำความสะอาด: <br> → เว้นวรรค, \| (pipe ใน cell) → ตัวแทนชั่วคราว
+  const raw = String(md || '').replace(/\r/g, '').replace(/<br\s*\/?>/gi, ' ').replace(/\\\|/g, '\u0001');
+  // 1) รวมบรรทัดที่ "ตกลงมา" กลับเข้าแถวเดิม
+  const lines = [];
+  const pipeLines = raw.split('\n').map(l => l.trim()).filter(l => l.indexOf('|') !== -1);
+  const strict = pipeLines.filter(l => /\|$/.test(l)).length * 2 >= pipeLines.length;      // แถวปกติปิดท้ายด้วย |
+  const lead = pipeLines.filter(l => /^\|/.test(l)).length * 2 >= pipeLines.length;        // แถวปกติขึ้นต้นด้วย |
+  raw.split('\n').forEach(l => {
+    const t = l.trim();
+    if (!t || /^[:\-\s]+$/.test(t)) return;
+    const prev = lines[lines.length - 1], n = lines.length - 1;
+    if (prev && /\|\s*$/.test(prev) && !/^\|/.test(t) && (t.indexOf('|') === -1 || lead)) lines.push('\u0002' + t);   // ส่วนต่อของแถวก่อนหน้า
+    else if (prev && t.indexOf('|') === -1) lines[n] = prev + ' ' + t;
+    else if (strict && prev && /^\|/.test(prev) && !/\|\s*$/.test(prev)) lines[n] = prev + ' ' + t;                  // แถวก่อนหน้ายังไม่ปิด
+    else lines.push(t);
+  });
+  // 2) แยก cell
+  const split = l => l.replace(/^\s*\|/, '').replace(/\|\s*$/, '').split('|').map(c => c.replace(/\u0001/g, '|').replace(/\s+/g, ' ').trim());
+  const isSep = r => r.some(c => /-/.test(c)) && r.every(c => c === '' || /^:?-+:?$/.test(c));
+  const firstRows = lines.filter(l => l[0] !== '\u0002').map(split);
+  const n0 = (firstRows.find(isSep) || firstRows[0] || []).length;                          // จำนวนคอลัมน์ที่ควรมี
+  let rows = [];
+  lines.forEach(l => {
+    if (l[0] !== '\u0002') { rows.push(split(l)); return; }
+    const cells = split(l.slice(1)), last = rows[rows.length - 1];
+    if (!last || isSep(last)) { rows.push(cells); return; }
+    if (last.length < n0) cells.forEach(c => last.push(c));                                  // cell ที่ขาดไปตกลงมาบรรทัดใหม่
+    else last[last.length - 1] = (last[last.length - 1] + ' ' + cells.join(' ')).trim();     // ข้อความต่อท้าย cell สุดท้าย
+  });
+  // 3) หา separator → แยก header / body (header ที่แตกเป็นหลายบรรทัดจะถูกรวมทีละคอลัมน์)
+  const si = rows.findIndex(isSep);
+  let headers, body;
+  if (si >= 1) {
+    const hr = rows.slice(0, si), w = Math.max(...hr.map(r => r.length));
+    headers = Array.from({ length: w }, (_, i) => hr.map(r => r[i] || '').filter(Boolean).join(' '));
+    body = rows.slice(si + 1).filter(r => !isSep(r));
+  } else {
+    rows = rows.filter(r => !isSep(r));
+    headers = rows[0] || []; body = rows.slice(1);
+  }
+  body = body.filter(r => r.some(Boolean));
+  if (!headers.length || !body.length) return null;
+  // 4) ให้ทุกแถวมีจำนวนคอลัมน์เท่ากับ header
+  const cnt = {}; body.forEach(r => { cnt[r.length] = (cnt[r.length] || 0) + 1; });
+  const mode = +Object.keys(cnt).sort((x, y) => cnt[y] - cnt[x] || y - x)[0];
+  while (headers.length > mode && !headers[headers.length - 1]) headers.pop();
+  const n = cnt[headers.length] ? headers.length : Math.max(headers.length, mode);
+  if (n < 2) return null;
+  const fix = r => r.length > n ? r.slice(0, n - 1).concat(r.slice(n - 1).filter(Boolean).join(' | ')) : r.concat(Array(n - r.length).fill(''));
+  return { headers: fix(headers), rows: body.map(fix) };
+}
+function tableFont(n) { return n <= 3 ? 22 : n === 4 ? 21 : n === 5 ? 19 : n === 6 ? 17 : n === 7 ? 16 : 14; }
+function tableHTML(headers, rows, fontPx) {
+  const n = headers.length;
+  const st = fontPx ? ` style="font-size:${fontPx}px"` : '';
+  const tr = r => {
+    if (n >= 3 && r[0] && r.filter(Boolean).length === 1)   // แถวหัวข้อกลุ่ม (merged cell)
+      return `<tr class="grp"><td colspan="${n}" style="background:#eff6ff;font-weight:700;color:#1d4ed8">${fmt(r[0])}</td></tr>`;
+    return '<tr>' + r.map((c, i) => `<td${i === 0 ? ' class="first"' : ''}>${fmt(c)}</td>`).join('') + '</tr>';
+  };
+  return `<div class="table-wrap"><table class="cols-${n}${n >= 6 ? ' dense' : ''}"${st}><thead><tr>` + headers.map(h => `<th>${fmt(h)}</th>`).join('') +
+    '</tr></thead><tbody>' + rows.map(tr).join('') + '</tbody></table></div>';
+}
+// แบ่งแถวตามความสูงจริงที่คาดไว้ → ตารางหนึ่งตารางพอดีหนึ่งหน้า (ถ้าล้นจริงค่อยแบ่ง และซ้ำหัวตารางทุกหน้า)
+function splitTableRows(t, reservePx) {
+  const n = t.headers.length, fs = tableFont(n), lh = fs * 1.4, pad = n >= 6 ? 12 : 17;
+  // ความกว้างคอลัมน์ในตาราง auto-layout แปรตามความยาวเนื้อหา → ประมาณจำนวนตัวอักษรต่อบรรทัดของแต่ละคอลัมน์ตามสัดส่วนนั้น
+  const w = t.headers.map((h, j) => Math.min(40, Math.max(4, String(h).length, Math.max(...t.rows.map(r => String(r[j] || '').length)) * 0.6)));
+  const wsum = w.reduce((x, y) => x + y, 0), totalChars = (980 - n * (n >= 6 ? 16 : 24)) / (fs * 0.52);
+  const cc = w.map(x => Math.max(4, totalChars * x / wsum));
+  const lines = (c, j) => Math.max(1, Math.ceil(String(c || '').length / cc[j]));
+  const hdr = Math.max(...t.headers.map(lines)) * lh + pad;
+  const budget = 570 - hdr - (reservePx || 0);
+  const hs = t.rows.map(r => ((n >= 3 && r[0] && r.filter(Boolean).length === 1) ? 1 : Math.max(...r.map(lines))) * lh + pad);
+  const total = hs.reduce((x, y) => x + y, 0);
+  const tol = Math.min(1.6, fs / 14);                       // ย่อได้จนตัวอักษรเหลือ ~14px เท่านั้น
+  if (total <= budget * tol) return [t.rows];               // ทั้งตารางจบในหน้าเดียว
+  const np = Math.ceil(total / (budget * Math.max(1.1, tol * 0.9)));
+  const limit = Math.max(total / np * 1.12, Math.max(...hs));
+  const pages = []; let cur = [], px = 0;
+  t.rows.forEach((r, i) => {
+    if (cur.length && px + hs[i] > limit) { pages.push(cur); cur = []; px = 0; }
+    cur.push(r); px += hs[i];
+  });
+  if (cur.length) pages.push(cur);
+  return pages;
+}
+const pick = (arr, n) => {   // เลือกให้กระจายทั่วทั้งหัวข้อ ไม่ตัดแต่ตอนท้าย
+  if (!n || arr.length <= n) return arr;
+  if (n === 1) return [arr[0]];
+  const out = []; for (let i = 0; i < n; i++) out.push(arr[Math.round(i * (arr.length - 1) / (n - 1))]);
+  return out;
+};
+function mdTableToHTML(md) {
+  const t = parseMdTable(md);
+  return t ? tableHTML(t.headers, t.rows) : `<pre>${escapeHTML(md)}</pre>`;
+}
+
+function normPoint(p) {
+  if (p && typeof p === 'object') return { t: String(p.t || p.text || ''), sub: (Array.isArray(p.sub) ? p.sub : []).map(String).filter(Boolean) };
+  return { t: String(p == null ? '' : p), sub: [] };
+}
+
+function normSection(sec) {
+  const concepts = (sec.concepts || []).map(c => ({
+    heading: c.heading || c.title || '',
+    points: (Array.isArray(c.points || c.bullets) ? (c.points || c.bullets) : bullets(c.points)).map(normPoint).filter(p => p.t),
+  })).filter(c => c.points.length);
+  if (!concepts.length && sec.content) concepts.push({ heading: '', points: bullets(sec.content).map(normPoint) });
+  return {
+    ...sec,
+    concepts,
+    definitions: (sec.definitions || []).filter(d => d && d.term).map(d => ({ term: d.term, meaning: d.meaning || d.definition || '' })),
+    formulas: (sec.formulas || []).map(f => typeof f === 'string' ? { name: '', formula: f, note: '' } : f).filter(f => f && f.formula),
+    examples: (sec.examples || []).map(e => typeof e === 'string' ? { title: '', text: e } : e).filter(e => e && e.text),
+    visuals: (sec.visuals && sec.visuals.length ? sec.visuals : (sec.figures || []).map(f => ({ kind: 'figure', caption: '', description: f, img: null })))
+      .filter(v => v && (v.img || v.description || v.caption)),
+  };
+}
+
+// ── ระดับความยาวสไลด์ (ใช้ทั้งใน prompt และตอนสร้าง slide) ──
+let LEVEL = 'balanced';
+const INF = Infinity;
+const LEVELS = {
+  compact:  { sections: '1',   concepts: '2–4', points: '2–4', defs: 5,  formulas: 3, examples: 1, tables: 2, visuals: 2, thai: '3',   takeaways: '3',   flash: '3–4',
+              divider: false, agenda: false, mergeSummary: true,  cap: { examples: 2,   visuals: 3,   thai: 3,   take: 3 } },
+  balanced: { sections: '1–2', concepts: '3–5', points: '3–5', defs: 8,  formulas: 5, examples: 2, tables: 3, visuals: 3, thai: '3–4', takeaways: '3–5', flash: '4–6',
+              divider: false, agenda: true,  mergeSummary: false, cap: { examples: 3,   visuals: 4,   thai: 4,   take: 5 } },
+  detailed: { sections: '2–3', concepts: '3–6', points: '3–6', defs: 12, formulas: 8, examples: 3, tables: 4, visuals: 4, thai: '4–6', takeaways: '4–6', flash: '5–8',
+              divider: true,  agenda: true,  mergeSummary: false, cap: { examples: INF, visuals: INF, thai: INF, take: INF } },
+};
+const normKey = x => String(x || '').toLowerCase().replace(/[\(\[]\s*(ต่อ|cont\.?|continued)\s*[\)\]]/g, '').replace(/[^\p{L}\p{N}]+/gu, '');
+const dedupeBy = (arr, fn) => { const seen = new Set(); return arr.filter(x => { const k = fn(x); if (!k || seen.has(k)) return false; seen.add(k); return true; }); };
+function mergeSectionInto(a, b) {
+  const cmap = new Map(a.concepts.map(c => [normKey(c.heading), c]));
+  b.concepts.forEach(c => {
+    const k = normKey(c.heading), ex = k && cmap.get(k);
+    if (ex) ex.points = ex.points.concat(c.points);
+    else { const nc = { ...c, points: c.points.slice() }; a.concepts.push(nc); cmap.set(k, nc); }
+  });
+  ['definitions', 'formulas', 'examples', 'visuals', 'tables', 'tableNotes', 'keyTakeaways'].forEach(f => { a[f] = (a[f] || []).concat(b[f] || []); });
+  const th = x => Array.isArray(x) ? x.join('\n') : (x || '');
+  a.thaiExplanation = [th(a.thaiExplanation), th(b.thaiExplanation)].filter(Boolean).join('\n');
+  if (!a.mustKnow) a.mustKnow = b.mustKnow;
+  if (!a.summary) a.summary = b.summary;
+}
+// รวม section ติดกันที่ชื่อเดียวกัน (เช่น หัวข้อเดียวที่คาบเกี่ยวสอง batch) + ตัดเนื้อหาซ้ำ + ตัด section ว่าง
+function consolidateSections(list) {
+  list.forEach(x => { x.tableNotes = (x.tables || []).map((_, i) => (x.tableNotes || [])[i] || ''); });
+  const out = [];
+  list.forEach(sec => {
+    const prev = out[out.length - 1];
+    if (prev && normKey(prev.title) && normKey(prev.title) === normKey(sec.title)) mergeSectionInto(prev, sec);
+    else out.push({ ...sec, concepts: sec.concepts.map(c => ({ ...c, points: c.points.slice() })) });
+  });
+  out.forEach(x => {
+    const seen = new Set();
+    x.concepts = x.concepts.map(c => ({ ...c, points: c.points.filter(p => { const k = normKey(p.t); if (!k || seen.has(k)) return false; seen.add(k); return true; }) })).filter(c => c.points.length);
+    x.definitions = dedupeBy(x.definitions, d => normKey(d.term));
+    x.formulas = dedupeBy(x.formulas, f => normKey(f.formula));
+    x.examples = dedupeBy(x.examples, e => normKey((e.title || '') + String(e.text || '').slice(0, 40)));
+    x.keyTakeaways = dedupeBy(x.keyTakeaways || [], t => normKey(t));
+    x.visuals = dedupeBy(x.visuals, v => (v.page || '') + '|' + normKey(v.caption) + '|' + normKey(v.description).slice(0, 30));
+    const tb = dedupeBy((x.tables || []).map((md, i) => ({ md, note: (x.tableNotes || [])[i] || '' })), t => normKey(t.md));
+    x.tables = tb.map(t => t.md); x.tableNotes = tb.map(t => t.note);
+  });
+  return out.filter(x => x.concepts.length || x.definitions.length || x.formulas.length || x.tables.length || x.visuals.length);
+}
+function getAllSections(masterData) {
+  const out = [];
+  for (const batch of masterData.batches)
+    for (const section of batch.sections || [])
+      out.push(normSection({ ...section, pageRange: batch.pageRange }));
+  return consolidateSections(out);
+}
+function getAllFlashcards(masterData) {
+  const cards = [];
+  for (const batch of masterData.batches)
+    for (const section of batch.sections || [])
+      for (const fc of section.flashcards || []) cards.push({ ...fc, source: section.title });
+  return cards;
+}
+const chunk = (arr, n) => { const o = []; for (let i = 0; i < arr.length; i += n) o.push(arr.slice(i, i + n)); return o; };
+
+/* ═══════════════════════════════════════════════════════════════
+   1. DOCUMENT (study guide)
+   ═══════════════════════════════════════════════════════════════ */
+function generateDocument(masterData) {
+  const secs = getAllSections(masterData);
+  const allFC = getAllFlashcards(masterData);
+  const allTake = secs.flatMap(s => s.keyTakeaways || []);
+  const allDefs = secs.flatMap(s => s.definitions).sort((a, b) => a.term.localeCompare(b.term));
+  const pad = n => String(n).padStart(2, '0');
+
+  const sectionHTML = secs.map((s, i) => {
+    const id = 's' + (i + 1);
+    const concepts = s.concepts.map((c, ci) => `
+      <div class="concept">
+        ${c.heading ? `<h3><span class="cn">${i + 1}.${ci + 1}</span>${fmt(c.heading)}</h3>` : ''}
+        <ul class="pts">${c.points.map(p => `<li>${fmt(p.t)}${p.sub.length ? `<ul class="sub">${p.sub.map(x => `<li>${fmt(x)}</li>`).join('')}</ul>` : ''}</li>`).join('')}</ul>
+      </div>`).join('');
+    const defs = s.definitions.length ? `
+      <div class="block"><div class="block-label">📖 คำศัพท์สำคัญ · Key Terms</div>
+        <div class="defs">${s.definitions.map(d => `<div class="def"><div class="def-t">${fmt(d.term)}</div><div class="def-d">${fmt(d.meaning)}</div></div>`).join('')}</div></div>` : '';
+    const formulas = s.formulas.length ? `
+      <div class="block"><div class="block-label">🧮 สูตร / กฎ · Formulas</div>
+        ${s.formulas.map(f => `<div class="formula">${f.name ? `<div class="f-name">${fmt(f.name)}</div>` : ''}<div class="f-eq">${fmt(f.formula)}</div>${f.note ? `<div class="f-note">${fmt(f.note)}</div>` : ''}</div>`).join('')}</div>` : '';
+    const examples = s.examples.length ? s.examples.map(e => `
+      <div class="callout ex"><div class="c-label">💡 ตัวอย่าง${e.title ? ' · ' + fmt(e.title) : ''}</div><div>${fmt(e.text)}</div></div>`).join('') : '';
+    const tables = (s.tables || []).map(t => `<div class="block"><div class="block-label">📊 ตาราง</div>${mdTableToHTML(t)}</div>`).join('');
+    const figs = s.visuals.map(v => v.img ? `
+      <figure class="vis"><img src="${v.img}" alt="">
+        <figcaption><b>${v.kind === 'table' ? '📊 ตารางต้นฉบับ' : '🖼️ รูป/กราฟ'}${v.caption ? ' · ' + fmt(v.caption) : ''}</b> <span class="vp">หน้า ${v.page || ''}</span>${v.description ? `<div>${fmt(v.description)}</div>` : ''}</figcaption></figure>` : `
+      <div class="callout fig"><div class="c-label">🖼️ รูป / กราฟ${v.caption ? ' · ' + fmt(v.caption) : ''}</div><div>${fmt(v.description || v.caption)}</div></div>`).join('');
+    const thai = bullets(s.thaiExplanation);
+    const thaiHTML = thai.length ? `<div class="callout thai"><div class="c-label">🇹🇭 อธิบายเป็นภาษาไทย</div>${thai.length > 1 ? `<ul>${thai.map(t => `<li>${escapeHTML(t)}</li>`).join('')}</ul>` : `<p>${escapeHTML(thai[0])}</p>`}</div>` : '';
+    const must = s.mustKnow ? `<div class="callout must"><div class="c-label">🎯 ต้องจำ · Must Know</div><div>${fmt(s.mustKnow)}</div></div>` : '';
+    const take = (s.keyTakeaways || []).length ? `<div class="callout take"><div class="c-label">⭐ สรุปประเด็นสำคัญ · Key Takeaways</div><ul>${s.keyTakeaways.map(t => `<li>${fmt(t)}</li>`).join('')}</ul></div>` : '';
+    const fc = (s.flashcards || []).length ? `
+      <div class="block"><div class="block-label">🃏 ทดสอบตัวเอง · Quick Check <span class="hint">(คลิกการ์ดเพื่อดูคำตอบ)</span></div>
+        <div class="fcs">${s.flashcards.map(f => `<div class="fc" onclick="this.classList.toggle('open')"><div class="fc-q">${fmt(f.type === 'qa' ? f.question : f.term)}</div><div class="fc-a">${fmt(f.type === 'qa' ? f.answer : f.definition)}</div></div>`).join('')}</div></div>` : '';
+    return `
+    <section class="sec" id="${id}">
+      <header class="sec-head">
+        <div class="sec-no">${pad(i + 1)}</div>
+        <div><div class="sec-pages">Pages ${escapeHTML(s.pageRange || '')}</div><h2>${fmt(s.title || 'Section ' + (i + 1))}</h2></div>
+      </header>
+      ${s.summary ? `<p class="lead">${fmt(s.summary)}</p>` : ''}
+      ${must}${concepts}${defs}${formulas}${examples}${tables}${figs}${thaiHTML}${take}${fc}
+    </section>`;
+  }).join('');
+
+  const nav = secs.map((s, i) => `<a href="#s${i + 1}"><span>${pad(i + 1)}</span>${escapeHTML(s.title || 'Section ' + (i + 1))}</a>`).join('');
+  const glossary = allDefs.length ? `
+    <section class="sec" id="glossary"><header class="sec-head"><div class="sec-no">A–Z</div><div><h2>Glossary · คลังคำศัพท์</h2></div></header>
+      <div class="defs">${allDefs.map(d => `<div class="def"><div class="def-t">${fmt(d.term)}</div><div class="def-d">${fmt(d.meaning)}</div></div>`).join('')}</div></section>` : '';
+  const cheat = allTake.length ? `
+    <section class="sec" id="cheat"><header class="sec-head"><div class="sec-no">★</div><div><h2>Cheat Sheet · สรุปก่อนสอบ</h2></div></header>
+      ${secs.filter(s => (s.keyTakeaways || []).length).map(s => `<div class="concept"><h3>${fmt(s.title)}</h3><ul class="pts">${s.keyTakeaways.map(t => `<li>${fmt(t)}</li>`).join('')}</ul></div>`).join('')}</section>` : '';
+
+  return `<!DOCTYPE html>
+<html lang="th"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Study Guide: ${escapeHTML(masterData.title || 'Document')}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--ac:#4f46e5;--ac2:#7c3aed;--ink:#0f172a;--tx:#334155;--mut:#64748b;--line:#e2e8f0;--bg:#f8fafc}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Inter','Sarabun',sans-serif;color:var(--tx);background:#fff;line-height:1.7;font-size:16px}
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);max-width:1180px;margin:0 auto}
+nav.side{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;padding:28px 16px 28px 24px;border-right:1px solid var(--line);background:var(--bg)}
+nav.side .brand{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ac);margin-bottom:14px}
+nav.side a{display:flex;gap:10px;padding:7px 8px;border-radius:8px;font-size:13px;color:var(--tx);text-decoration:none;line-height:1.35;margin-bottom:2px}
+nav.side a span{font-weight:800;color:var(--ac);font-size:12px;min-width:20px}
+nav.side a:hover{background:#eef2ff}
+main{padding:40px 40px 100px;min-width:0}
+.doc-head{padding-bottom:28px;border-bottom:2px solid var(--line);margin-bottom:12px}
+.badge{display:inline-block;padding:4px 12px;background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;border-radius:99px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:14px}
+.doc-title{font-size:34px;font-weight:800;line-height:1.25;color:var(--ink);margin-bottom:12px}
+.meta{display:flex;gap:10px;flex-wrap:wrap;font-size:12px}
+.meta span{background:var(--bg);border:1px solid var(--line);border-radius:99px;padding:3px 12px;color:var(--mut)}
+.sec{padding-top:44px;margin-top:8px}
+.sec-head{display:flex;gap:16px;align-items:center;margin-bottom:18px}
+.sec-no{flex:none;min-width:54px;height:54px;padding:0 8px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;font-weight:800;font-size:20px}
+.sec-pages{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--mut)}
+h2{font-size:26px;line-height:1.25;color:var(--ink);font-weight:800}
+.lead{font-size:17px;color:var(--ink);background:var(--bg);border-left:4px solid var(--ac);padding:14px 18px;border-radius:0 12px 12px 0;margin-bottom:18px}
+.concept{margin:22px 0}
+h3{font-size:18px;color:var(--ink);font-weight:700;margin-bottom:10px;display:flex;gap:10px;align-items:baseline}
+.cn{font-size:12px;font-weight:800;color:var(--ac);background:#eef2ff;border-radius:6px;padding:1px 8px}
+ul.pts{list-style:none;display:flex;flex-direction:column;gap:7px}
+ul.pts li{position:relative;padding-left:22px}
+ul.pts li::before{content:'';position:absolute;left:4px;top:.65em;width:8px;height:8px;border-radius:50%;background:var(--ac)}
+strong{font-weight:700;color:var(--ink);background:linear-gradient(transparent 62%,#fde68a 62%)}
+ul.pts ul.sub{list-style:none;margin:6px 0 2px;display:flex;flex-direction:column;gap:4px;font-size:14.5px;color:var(--mut)}ul.pts ul.sub li{padding-left:18px}ul.pts ul.sub li::before{width:5px;height:5px;background:#94a3b8;top:.75em;left:5px}
+code{font-family:ui-monospace,Menlo,monospace;background:#f1f5f9;border-radius:4px;padding:1px 6px;font-size:.9em}
+.block{margin:26px 0}
+.block-label,.c-label{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin-bottom:10px}
+.hint{font-weight:500;text-transform:none;letter-spacing:0}
+.defs{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.def{border:1px solid var(--line);border-top:3px solid var(--ac2);border-radius:10px;padding:12px 14px;background:#fff}
+.def-t{font-weight:700;color:var(--ink);margin-bottom:3px}
+.def-d{font-size:14px}
+.formula{background:#0f172a;color:#e0e7ff;border-radius:12px;padding:16px 20px;margin:10px 0}
+.f-name{font-size:12px;font-weight:700;color:#a5b4fc;text-transform:uppercase;letter-spacing:.06em}
+.f-eq{font-family:ui-monospace,Menlo,monospace;font-size:20px;margin:6px 0;color:#fff;overflow-x:auto}
+.f-note{font-size:13px;color:#cbd5e1}
+.callout{border-radius:12px;padding:16px 20px;margin:18px 0;border:1px solid var(--line);border-left:5px solid var(--mut);background:var(--bg)}
+.callout ul{padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.callout.must{background:#fef2f2;border-color:#fecaca;border-left-color:#ef4444}.callout.must .c-label{color:#b91c1c}
+.callout.ex{background:#f0fdf4;border-color:#bbf7d0;border-left-color:#22c55e}.callout.ex .c-label{color:#15803d}
+.vis{margin:22px 0;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 2px 10px rgba(15,23,42,.06)}.vis img{display:block;max-width:100%;margin:0 auto;padding:12px;background:#fff}.vis figcaption{padding:12px 18px;background:var(--bg);border-top:1px solid var(--line);font-size:14px}.vis figcaption b{color:var(--ink)}.vp{font-size:11px;color:var(--mut);margin-left:6px}.vis figcaption div{margin-top:4px}
+.callout.fig{background:#f8fafc;border-left-color:#94a3b8;font-style:italic}
+.callout.thai{background:#eff6ff;border-color:#bfdbfe;border-left-color:#3b82f6;font-family:'Sarabun',sans-serif;font-size:17px;line-height:1.9}.callout.thai .c-label{color:#1d4ed8}
+.callout.take{background:#fffbeb;border-color:#fde68a;border-left-color:#f59e0b}.callout.take .c-label{color:#b45309}
+.callout.take li{font-weight:600;color:#78350f}
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;text-align:left;padding:10px 14px}
+td{padding:9px 14px;border-top:1px solid var(--line)}td.first{font-weight:600;color:var(--ink)}
+tr:nth-child(even) td{background:var(--bg)}
+.fcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.fc{cursor:pointer;border:1px solid var(--line);border-radius:12px;padding:14px;background:#faf5ff;border-top:3px solid #a855f7;user-select:none}
+.fc-q{font-weight:700;color:var(--ink)}
+.fc-a{display:none;margin-top:8px;padding-top:8px;border-top:1px dashed #d8b4fe;font-size:14px}
+.fc.open .fc-a{display:block}.fc.open{background:#f0fdf4;border-top-color:#22c55e}
+.tools{position:fixed;right:16px;bottom:16px;display:flex;gap:8px;z-index:9}
+.tools button{border:0;border-radius:99px;padding:10px 16px;background:var(--ac);color:#fff;font-weight:700;font-size:13px;cursor:pointer;box-shadow:0 4px 16px rgba(79,70,229,.35)}
+footer{margin-top:70px;padding-top:20px;border-top:1px solid var(--line);text-align:center;font-size:12px;color:var(--mut)}
+@media(max-width:900px){.layout{grid-template-columns:1fr}nav.side{display:none}main{padding:24px 16px 90px}.doc-title{font-size:26px}h2{font-size:22px}}
+@media print{nav.side,.tools{display:none}.layout{display:block}main{padding:0}.sec{break-inside:avoid-page}.fc-a{display:block!important}.callout,.def,.formula,.fc{break-inside:avoid}body{font-size:13px}}
+</style></head><body>
+<div class="layout">
+<nav class="side"><div class="brand">📚 Contents</div>${nav}${glossary ? '<a href="#glossary"><span>A–Z</span>Glossary</a>' : ''}${cheat ? '<a href="#cheat"><span>★</span>Cheat Sheet</a>' : ''}</nav>
+<main>
+<header class="doc-head"><div class="badge">StudyGen AI · Study Guide</div>
+<h1 class="doc-title">${escapeHTML(masterData.title || 'Study Document')}</h1>
+<div class="meta"><span>📄 ${masterData.totalPages || '?'} pages</span><span>📑 ${secs.length} sections</span><span>📖 ${allDefs.length} terms</span><span>🃏 ${allFC.length} flashcards</span><span>🗓️ ${new Date().toLocaleDateString('th-TH')}</span></div></header>
+${sectionHTML}${glossary}${cheat}
+<footer>Generated by StudyGen AI • ${new Date().toLocaleString('th-TH')}</footer>
+</main></div>
+<div class="tools"><button onclick="document.querySelectorAll('.fc').forEach(f=>f.classList.toggle('open',window._o=!window._o))">👁️ เปิด/ปิดคำตอบทั้งหมด</button><button onclick="window.print()">🖨️ Print</button></div>
+</body></html>`;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   2. SLIDES (A4 landscape, print → PDF)
+   ═══════════════════════════════════════════════════════════════ */
+function generateSlides(masterData) {
+  const secs = getAllSections(masterData);
+  const L = LEVELS[masterData.level] || LEVELS.balanced;
+  const docTitle = masterData.title || 'Study Guide';
+  const pad = n => String(n).padStart(2, '0');
+  const out = [];
+
+  // รูปแบบสไลด์ธรรมดา: หัวข้อ + เส้นใต้ + bullet / ไม่มีกล่อง
+  const slide = (cls, body, label) => out.push(`<section class="slide ${cls}"><div class="s-body"><div class="s-in">${body}</div></div>${label !== null ? `<div class="s-foot"><span>${fmt(label || docTitle)}</span><span class="no"></span></div>` : ''}</section>`);
+  const title = (t, kicker) => `${kicker ? `<div class="kick">${fmt(kicker)}</div>` : ''}<h2>${fmt(t)}</h2><div class="bar-u"></div>`;
+  const li = p => `<li>${fmt(p.t)}${p.sub.length ? `<ul class="sub">${p.sub.map(x => `<li>${fmt(x)}</li>`).join('')}</ul>` : ''}</li>`;
+  const lineCost = p => Math.ceil(p.t.length / 58) + p.sub.reduce((n, x) => n + Math.ceil(x.length / 66), 0);
+  const CAP = 11;
+
+  // ── Title
+  slide('title', `<div class="t-bar"></div><h1>${escapeHTML(docTitle)}</h1>
+    <p class="t-sub">${secs.length} หัวข้อ · ${new Date().toLocaleDateString('th-TH')}</p>`, null);
+
+  // ── Agenda
+  if (L.agenda && secs.length >= 3) slide('', `${title('Outline')}<ol class="agenda">${secs.map(s => `<li>${fmt(s.title)}</li>`).join('')}</ol>`);
+
+  secs.forEach((s, si) => {
+    // ── Section divider
+    if (L.divider) slide('divider', `<div class="d-no">${pad(si + 1)}</div><h1>${fmt(s.title)}</h1>${s.summary ? `<p>${fmt(s.summary)}</p>` : ''}`, s.title);
+
+    // ── Concepts → slides
+    // 1) split long concepts by line budget
+    let parts = [];
+    s.concepts.forEach(c => {
+      let cur = [], cost = 0, k = 0;
+      c.points.forEach(p => {
+        const lc = lineCost(p);
+        if (cur.length && cost + lc > CAP) { parts.push({ heading: c.heading + (c.heading && k ? ' (ต่อ)' : ''), points: cur, cost }); cur = []; cost = 0; k++; }
+        cur.push(p); cost += lc;
+      });
+      if (cur.length) parts.push({ heading: c.heading + (c.heading && k ? ' (ต่อ)' : ''), points: cur, cost });
+    });
+    // 2) merge small neighbours onto one slide (sub-headings)
+    const groups = []; let g = [], gc = 0;
+    parts.forEach(p => {
+      const c = p.cost + 2;
+      if (g.length && gc + c > CAP + 1) { groups.push(g); g = []; gc = 0; }
+      g.push(p); gc += c;
+    });
+    if (g.length) groups.push(g);
+
+    groups.forEach(grp => {
+      if (grp.length === 1) {
+        const p = grp[0];
+        slide('', `${title(p.heading || s.title, p.heading ? s.title : '')}<ul class="b">${p.points.map(li).join('')}</ul>`, s.title);
+      } else {
+        slide('', `${title(s.title)}${grp.map(p => `${p.heading ? `<h3>${fmt(p.heading)}</h3>` : ''}<ul class="b tight">${p.points.map(li).join('')}</ul>`).join('')}`, s.title);
+      }
+    });
+
+    // ── Key terms (simple 2-column list)
+    chunk(s.definitions, 6).forEach((grp, k, all) => slide('', `${title('Key Terms' + (all.length > 1 ? ` (${k + 1}/${all.length})` : ''), s.title)}
+      <table class="terms">${grp.map(d => `<tr><td class="tt">${fmt(d.term)}</td><td>${fmt(d.meaning)}</td></tr>`).join('')}</table>`, s.title));
+
+    // ── Formulas
+    chunk(s.formulas, 3).forEach(grp => slide('', `${title('Formulas', s.title)}
+      ${grp.map(f => `<div class="fm">${f.name ? `<div class="fm-n">${fmt(f.name)}</div>` : ''}<div class="fm-e">${fmt(f.formula)}</div>${f.note ? `<div class="fm-t">${fmt(f.note)}</div>` : ''}</div>`).join('')}`, s.title));
+
+    // ── Examples
+    chunk(pick(s.examples, L.cap.examples), 2).forEach(grp => slide('', `${title('Example', s.title)}
+      ${grp.map(e => `<div class="ex">${e.title ? `<h3>${fmt(e.title)}</h3>` : ''}<p>${fmt(e.text)}</p></div>`).join('')}`, s.title));
+
+    // ── ตารางที่ AI สร้างใหม่ (หนึ่งตาราง = หนึ่งหน้า ถ้าสูงเกินจริงจึงแบ่งและซ้ำหัวตาราง)
+    (s.tables || []).forEach((md, ti) => {
+      const t = parseMdTable(md);
+      if (!t) return;
+      const note = (s.tableNotes || [])[ti] || '';
+      const fs = tableFont(t.headers.length);
+      splitTableRows(t, note ? 70 : 0).forEach((rows, k, all) => slide('tbl',
+        `<div class="kick">${fmt(s.title)} · ตาราง (AI สร้างใหม่)${all.length > 1 ? ` ${k + 1}/${all.length}` : ''}</div><h2>Table</h2><div class="bar-u"></div>${tableHTML(t.headers, rows, fs)}${note && k === all.length - 1 ? `<p class="vis-d">${fmt(note)}</p>` : ''}`, s.title));
+    });
+
+    // ── Figures / ตารางต้นฉบับจาก PDF (ตัดจากหน้าจริง ให้เทียบกับตารางที่ generate)
+    pick(s.visuals, L.cap.visuals).forEach(v => {
+      const isT = v.kind === 'table';
+      const kick = `${s.title} · ${isT ? 'ตารางต้นฉบับ' : 'รูปจากหน้า PDF'}${v.page ? ` (หน้า ${v.page})` : ''}`;
+      const t = v.caption || (isT ? 'Table' : 'Figure');
+      const head = `<div class="kick">${fmt(kick)}</div><h2>${fmt(t)}</h2><div class="bar-u"></div>`;
+      if (v.img) slide('visual', `${head}<div class="vis"><img src="${v.img}" alt=""></div>${v.description ? `<p class="vis-d">${fmt(v.description)}</p>` : ''}`, s.title);
+      else if (!isT) slide('', `${head}<p class="plain">${fmt(v.description || v.caption)}</p>`, s.title);
+    });
+
+    // ── Summary slides
+    const thai = pick(bullets(s.thaiExplanation), L.cap.thai), tk = pick(s.keyTakeaways || [], L.cap.take);
+    const thaiUL = grp => `<ul class="b th">${grp.map(t => `<li>${fmt(t)}</li>`).join('')}</ul>`;
+    const mustP = s.mustKnow ? `<p class="must">${fmt(s.mustKnow)}</p>` : '';
+    if (L.mergeSummary) {
+      if (thai.length) slide('', `${title('สรุป', s.title)}${mustP}${thaiUL(thai)}`, s.title);
+      else if (tk.length || s.mustKnow) slide('', `${title('Key Takeaways', s.title)}${mustP}${tk.length ? `<ul class="b">${tk.map(t => `<li>${fmt(t)}</li>`).join('')}</ul>` : ''}`, s.title);
+    } else {
+      chunk(thai, 4).forEach((grp, k, all) => slide('', `${title('สรุป' + (all.length > 1 ? ` (${k + 1}/${all.length})` : ''), s.title)}${thaiUL(grp)}`, s.title));
+      if (tk.length || s.mustKnow) chunk(tk.length ? tk : [''], 6).forEach((grp, k, all) => slide('', `${title('Key Takeaways' + (all.length > 1 ? ` (${k + 1}/${all.length})` : ''), s.title)}
+        ${k === 0 ? mustP : ''}${grp[0] ? `<ul class="b">${grp.map(t => `<li>${fmt(t)}</li>`).join('')}</ul>` : ''}`, s.title));
+    }
+  });
+
+  return `<!DOCTYPE html>
+<html lang="th"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Slides: ${escapeHTML(docTitle)}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#d1d5db;font-family:'Sarabun','Inter',sans-serif;color:#1f2937}
+body{counter-reset:sl;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.slide{counter-increment:sl;position:relative;width:297mm;height:210mm;margin:14px auto;background:#fff;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 4px 20px rgba(0,0,0,.18);page-break-after:always;break-after:page}
+.s-body{flex:1;min-height:0;overflow:hidden;padding:44px 70px 0}
+.s-foot{display:flex;justify-content:space-between;padding:0 70px 18px;font-size:13px;color:#9ca3af}
+.s-foot .no::after{content:counter(sl);color:#6b7280;font-weight:600}
+.kick{font-size:15px;font-weight:600;color:#2563eb;margin-bottom:4px;letter-spacing:.02em}
+h2{font-size:40px;font-weight:800;color:#111827;line-height:1.25}
+.bar-u{width:72px;height:5px;background:#2563eb;border-radius:3px;margin:12px 0 26px}
+h3{font-size:27px;font-weight:700;color:#1d4ed8;margin:18px 0 8px}
+strong{font-weight:700;color:#1d4ed8}
+code{font-family:ui-monospace,Menlo,monospace;background:#f3f4f6;padding:0 5px;border-radius:4px;font-size:.92em}
+ul.b{list-style:none;display:flex;flex-direction:column;gap:14px}
+ul.b>li{position:relative;padding-left:30px;font-size:28px;line-height:1.45}
+ul.b>li::before{content:'';position:absolute;left:4px;top:.62em;width:11px;height:11px;border-radius:50%;background:#2563eb}
+ul.b.tight{gap:9px}ul.b.tight>li{font-size:25px}
+ul.sub{list-style:none;margin-top:7px;display:flex;flex-direction:column;gap:5px}
+ul.sub li{position:relative;padding-left:24px;font-size:23px;line-height:1.4;color:#374151}
+ul.sub li::before{content:'–';position:absolute;left:4px;color:#6b7280}
+ul.th>li{font-size:27px;line-height:1.6}
+/* title / divider */
+.slide.title .s-body{display:flex;align-items:center}
+.slide.title .s-in{width:100%}
+.t-bar{width:96px;height:8px;background:#2563eb;border-radius:4px;margin-bottom:28px}
+.slide.title h1{font-size:54px;font-weight:800;color:#111827;line-height:1.2;max-width:215mm}
+.t-sub{font-size:20px;color:#6b7280;margin-top:22px}
+.slide.divider{background:#f8fafc}.slide.divider .s-body{display:flex;align-items:center;border-left:14px solid #2563eb}
+.d-no{font-size:84px;font-weight:800;color:#2563eb;line-height:1}
+.slide.divider h1{font-size:50px;font-weight:800;color:#111827;line-height:1.2;margin:8px 0 18px}
+.slide.divider p{font-size:25px;line-height:1.55;color:#4b5563;max-width:210mm}
+ol.agenda{padding-left:44px;display:flex;flex-direction:column;gap:14px;font-size:29px;font-weight:600}
+ol.agenda li::marker{color:#2563eb;font-weight:800}
+/* terms */
+table.terms{width:100%;border-collapse:collapse}
+.terms td{padding:13px 12px;border-bottom:1px solid #e5e7eb;font-size:24px;line-height:1.4;vertical-align:top}
+.terms td.tt{width:30%;font-weight:700;color:#1d4ed8}
+/* formulas / examples */
+.fm{padding:14px 0 18px;border-bottom:1px solid #e5e7eb}.fm:last-child{border:0}
+.fm-n{font-size:20px;font-weight:700;color:#1d4ed8}
+.fm-e{font-family:ui-monospace,Menlo,monospace;font-size:36px;text-align:center;margin:12px 0;color:#111827}
+.fm-t{font-size:21px;color:#4b5563;text-align:center}
+.ex{margin-bottom:12px}.ex p{font-size:26px;line-height:1.55}
+.plain{font-size:27px;line-height:1.6}
+.must{font-size:27px;line-height:1.5;font-weight:700;color:#111827;border-left:6px solid #2563eb;padding-left:18px;margin-bottom:22px}
+/* tables */
+.table-wrap{overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:22px}
+th{text-align:left;padding:11px 14px;border-bottom:3px solid #2563eb;font-weight:700;color:#111827;background:#f8fafc}
+td{padding:11px 14px;border-bottom:1px solid #e5e7eb;line-height:1.4}td.first{font-weight:700}
+.s-in *{min-width:0}
+.s-in{overflow-wrap:break-word}
+.s-in img{max-width:100%}
+table{table-layout:auto}
+th,td{overflow-wrap:normal;word-break:normal;hyphens:none}
+.slide.tbl .table-wrap{overflow:visible}
+.slide.tbl td,.slide.tbl th{padding:8px 12px}.slide.tbl table.dense td,.slide.tbl table.dense th{padding:6px 8px}
+.slide.tbl th{line-height:1.3}
+/* visual */
+.slide.visual .s-in{display:flex;flex-direction:column;height:100%}
+.vis{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+.vis img{max-width:100%;max-height:112mm;object-fit:contain}
+.vis-d{font-size:20px;line-height:1.45;color:#4b5563;text-align:center;margin:6px 0 10px}
+.bar{position:sticky;top:0;z-index:50;display:flex;gap:12px;justify-content:center;align-items:center;padding:12px;background:rgba(209,213,219,.96);border-bottom:1px solid #9ca3af}
+.bar button{border:0;border-radius:8px;padding:10px 22px;background:#2563eb;color:#fff;font-weight:700;font-size:14px;cursor:pointer}.bar span{font-size:13px;color:#4b5563}
+@page{size:A4 landscape;margin:0}
+@media print{html,body{background:#fff}.bar{display:none}.slide{margin:0;box-shadow:none}#deck{zoom:1!important}}
+</style></head><body>
+<div class="bar"><button onclick="window.print()">🖨️ Print / Save as PDF</button><span>A4 Landscape · Margins: None</span></div>
+<div id="deck">
+${out.join('\n')}
+</div>
+<script>
+function shrink(){document.querySelectorAll('.slide').forEach(function(sl){var b=sl.querySelector('.s-body'),i=sl.querySelector('.s-in');if(!b||!i)return;i.style.zoom=1;var z=1;while((b.scrollHeight>b.clientHeight+1||b.scrollWidth>b.clientWidth+1)&&z>.4){z-=.04;i.style.zoom=z}})}
+function fit(){document.getElementById('deck').style.zoom=Math.min(1,(innerWidth-24)/1123)}
+addEventListener('resize',fit);fit();
+document.fonts&&document.fonts.ready?document.fonts.ready.then(shrink):0;addEventListener('load',shrink);
+addEventListener('beforeprint',function(){document.getElementById('deck').style.zoom=1;shrink()});addEventListener('afterprint',fit);
+<\/script>
+</body></html>`;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   3. ANKI CSV GENERATOR
+   Format: Front[TAB]Back[TAB]Tags
+   ═══════════════════════════════════════════════════════════════ */
+function generateAnkiCSV(masterData) {
+  const cards = getAllFlashcards(masterData);
+  const docTitle = (masterData.title || 'studygen').replace(/\s+/g, '_').toLowerCase();
+  const rows = ['#separator:tab\n#html:false\n#notetype:Basic\n#deck:' + docTitle];
+  for (const fc of cards) {
+    if (fc.type === 'qa') {
+      const front = (fc.question || '').replace(/\t|\n/g, ' ');
+      const back  = (fc.answer   || '').replace(/\t|\n/g, ' ');
+      const tag   = (fc.source   || '').replace(/\s+/g, '_').replace(/\t/g, '');
+      rows.push(`${front}\t${back}\t${tag}`);
+    } else {
+      const front = (fc.term       || '').replace(/\t|\n/g, ' ');
+      const back  = (fc.definition || '').replace(/\t|\n/g, ' ');
+      const tag   = (fc.source     || '').replace(/\s+/g, '_').replace(/\t/g, '');
+      rows.push(`${front}\t${back}\t${tag}`);
+    }
+  }
+  return rows.join('\n');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   4. QUIZLET CSV GENERATOR
+   Format: Term,Definition
+   ═══════════════════════════════════════════════════════════════ */
+function generateQuizletCSV(masterData) {
+  const cards = getAllFlashcards(masterData);
+  const rows = [];
+  for (const fc of cards) {
+    function csvEscape(s) {
+      s = (s||'').replace(/\n/g,' ').replace(/"/g,'""');
+      return `"${s}"`;
+    }
+    if (fc.type === 'qa') {
+      rows.push(`${csvEscape(fc.question)},${csvEscape(fc.answer)}`);
+    } else {
+      rows.push(`${csvEscape(fc.term)},${csvEscape(fc.definition)}`);
+    }
+  }
+  return rows.join('\n');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   5. DOWNLOAD UTILITIES
+   ═══════════════════════════════════════════════════════════════ */
+function downloadBlob(content, filename, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 100);
+}
+
+function downloadDocument(masterData) {
+  const html = generateDocument(masterData);
+  const name = (masterData.title || 'study_guide').replace(/[^a-zA-Zก-๙0-9]/g,'_').substring(0,40);
+  downloadBlob(html, `${name}_document.html`, 'text/html;charset=utf-8');
+}
+
+function downloadSlides(masterData) {
+  const html = generateSlides(masterData);
+  const name = (masterData.title || 'study_guide').replace(/[^a-zA-Zก-๙0-9]/g,'_').substring(0,40);
+  downloadBlob(html, `${name}_slides.html`, 'text/html;charset=utf-8');
+}
+
+function downloadAnki(masterData) {
+  const csv  = generateAnkiCSV(masterData);
+  const name = (masterData.title || 'study_guide').replace(/[^a-zA-Zก-๙0-9]/g,'_').substring(0,40);
+  downloadBlob(csv, `${name}_anki.txt`, 'text/plain;charset=utf-8');
+}
+
+function downloadQuizlet(masterData) {
+  const csv  = generateQuizletCSV(masterData);
+  const name = (masterData.title || 'study_guide').replace(/[^a-zA-Zก-๙0-9]/g,'_').substring(0,40);
+  downloadBlob(csv, `${name}_quizlet.csv`, 'text/csv;charset=utf-8');
+}
+
+function downloadAll(masterData) {
+  setTimeout(() => downloadDocument(masterData), 0);
+  setTimeout(() => downloadSlides(masterData),   600);
+  setTimeout(() => downloadAnki(masterData),     1200);
+  setTimeout(() => downloadQuizlet(masterData),  1800);
+}
+
+</script>
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   app.js — Main Application Logic
+   PDF Processing, AI API Calls, Orchestration
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── PDF.js Worker Setup ─────────────────────────────────────── */
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+let BATCH_SIZE    = 5;
+let CONCURRENCY = 2;   // จำนวน batch ที่ประมวลผลพร้อมกัน (อ่านจากตัวเลือกตอนเริ่ม)
+const RENDER_SCALE = 1.2;   // 150 DPI equivalent — good quality, reasonable size
+
+/* ─── State ──────────────────────────────────────────────────── */
+let state = {
+  provider: 'gemini',
+  apiKey:   '',
+  model:    '',
+  pdfFile:  null,
+  pdfDoc:   null,
+  masterData: null,
+  processing: false,
+};
+
+// ลำดับ model ฟรีที่ต้องการ (ใช้ตัวแรกที่ key ใช้ได้)
+const GEMINI_PREFERRED = ['gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-flash'];
+
+const STATIC_MODELS = {
+  gemini: GEMINI_PREFERRED,
+  openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4.1', 'gpt-4.1-mini'],
+  claude: ['claude-sonnet-4-5', 'claude-haiku-4-5', 'claude-opus-4-5'],
+};
+
+function setModelOptions(list, pick) {
+  const mi = $('model-input');
+  mi.innerHTML = list.map(n => `<option value="${n}">${n}</option>`).join('');
+  mi.value = list.includes(pick) ? pick : list[0];
+  state.model = mi.value;
+}
+
+function diag(msg) { const d = $('diag'); d.style.display = 'block'; d.textContent = msg; }
+
+async function testConnection() {
+  hideError();
+  if (!state.apiKey) { showError('กรอก API Key ก่อน'); return; }
+  const lines = [`origin: ${location.origin}`, `online: ${navigator.onLine}`, `provider: ${state.provider}`];
+  diag(lines.join('\n') + '\n⏳ กำลังทดสอบ...');
+  try {
+    if (state.provider === 'gemini') {
+      const n = await loadGeminiModels(true);
+      lines.push('✅ เชื่อมต่อ Google ได้ — พบ ' + n + ' models');
+    } else if (state.provider === 'openai') {
+      const r = await fetch('https://api.openai.com/v1/models', { headers: { Authorization: 'Bearer ' + state.apiKey } });
+      if (!r.ok) throw await apiError('OpenAI', r);
+      const ids = (await r.json()).data.map(m => m.id).filter(id => /^(gpt-4|gpt-5|o\d)/.test(id) && !/audio|realtime|tts|image|transcribe|search|instruct/.test(id)).sort();
+      if (ids.length) setModelOptions(ids, 'gpt-4o');
+      lines.push('✅ เชื่อมต่อ OpenAI ได้ — ' + ids.length + ' models');
+    } else {
+      const r = await fetch('https://api.anthropic.com/v1/models?limit=100', { headers: { 'x-api-key': state.apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' } });
+      if (!r.ok) throw await apiError('Claude', r);
+      const ids = (await r.json()).data.map(m => m.id);
+      if (ids.length) setModelOptions(ids, 'claude-sonnet-4-5');
+      lines.push('✅ เชื่อมต่อ Claude ได้ — ' + ids.length + ' models');
+    }
+  } catch (e) {
+    lines.push('❌ ' + e.name + ': ' + e.message);
+    if (location.origin === 'null' || location.protocol === 'blob:' || window.top !== window) lines.push('⚠️ หน้านี้รันในกรอบ sandbox/พรีวิว (origin: null) ซึ่งบล็อกการเรียก API ภายนอก → ต้องเปิดไฟล์ใน Chrome/Safari ปกติ หรือผ่าน http://localhost');
+    if (e instanceof TypeError || /fetch|load failed|network/i.test(e.message)) lines.push('→ คำขอออกไปไม่ถึง server (เครือข่าย/ถูกบล็อก/CSP/extension) ไม่ใช่ key ผิด\n→ ลอง: Incognito ปิด extension, ปิด VPN, เปิดผ่าน http://localhost แทน file://, หรือเปิดนอกแอปที่ฝัง/พรีวิว (เช่นในแชท) ด้วย Chrome/Safari ปกติ');
+  }
+  diag(lines.join('\n'));
+}
+
+async function loadGeminiModels(manual) {
+  if (state.provider !== 'gemini' || (!manual && state.apiKey.length < 20)) return 0;
+  try {
+    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200&key=' + encodeURIComponent(state.apiKey), {});
+    if (!res.ok) throw await apiError('Gemini', res);
+    const data = await res.json();
+    const names = (data.models || [])
+      .filter(m => (m.supportedGenerationMethods || []).includes('generateContent'))
+      .map(m => m.name.replace(/^models\//, ''))
+      .filter(n => /^gemini-/.test(n) && !/tts|image|live|embedding|robotics|audio/.test(n));
+    state.geminiModels = names;
+    const pick = GEMINI_PREFERRED.find(m => names.includes(m)) || names.find(n => /flash/.test(n)) || names[0];
+    // เรียง: ตัวที่แนะนำ (ฟรี) ก่อน แล้วตามด้วยที่เหลือ
+    const sorted = [...GEMINI_PREFERRED.filter(m => names.includes(m)), ...names.filter(n => !GEMINI_PREFERRED.includes(n))];
+    if (sorted.length) setModelOptions(sorted, pick);
+    hideError();
+    $('model-hint').innerHTML = '✅ key ใช้ได้ — พบ ' + names.length + ' models, เลือกให้: <strong>' + $('model-input').value + '</strong>';
+    return names.length;
+  } catch (e) { if (manual) throw e; }
+  return 0;
+}
+
+const PROVIDER_MODELS = {
+  gemini: 'gemini-3.5-flash-lite',
+  openai: 'gpt-4o',
+  claude: 'claude-sonnet-4-5',
+};
+
+/* ─── DOM Refs ───────────────────────────────────────────────── */
+const $ = id => document.getElementById(id);
+
+/* ═══════════════════════════════════════════════════════════════
+   PDF LOADING & RENDERING
+   ═══════════════════════════════════════════════════════════════ */
+
+async function loadPDF(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  return pdf;
+}
+
+const HI_SCALE = 2.0;   // ความละเอียดสูงไว้ crop รูป/ตาราง
+
+async function renderPage(pdf, pageNum) {
+  const page = await pdf.getPage(pageNum);
+  const vp   = page.getViewport({ scale: HI_SCALE });
+  const hi   = document.createElement('canvas');
+  hi.width = Math.round(vp.width); hi.height = Math.round(vp.height);
+  const ctx = hi.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, hi.width, hi.height);
+  await page.render({ canvasContext: ctx, viewport: vp }).promise;
+
+  // ภาพเล็กลงสำหรับส่งให้ AI
+  const k  = RENDER_SCALE / HI_SCALE;
+  const lo = document.createElement('canvas');
+  lo.width = Math.round(hi.width * k); lo.height = Math.round(hi.height * k);
+  lo.getContext('2d').drawImage(hi, 0, 0, lo.width, lo.height);
+  return { hi, ai: lo.toDataURL('image/jpeg', 0.8) };
+}
+
+// box = [ymin, xmin, ymax, xmax] 0–1000
+// กรอบจาก AI มักเล็กไปนิด → ขยายกรอบออกไปจนพ้นขอบเนื้อหา (พื้นขาว) แล้วตัดขอบว่างทิ้ง
+function cropVisual(hi, box) {
+  if (!Array.isArray(box) || box.length !== 4) return null;
+  let [y0, x0, y1, x1] = box.map(Number);
+  if ([y0, x0, y1, x1].some(n => !isFinite(n))) return null;
+  if (y1 < y0) [y0, y1] = [y1, y0];
+  if (x1 < x0) [x0, x1] = [x1, x0];
+  const W = hi.width, H = hi.height;
+  const cl = (v, m) => Math.max(0, Math.min(m, v));
+  let L = Math.round(x0 / 1000 * W), R = Math.round(x1 / 1000 * W);
+  let T = Math.round(y0 / 1000 * H), B = Math.round(y1 / 1000 * H);
+  const pw = Math.round(W * 0.02), ph = Math.round(H * 0.02);
+  L = cl(L - pw, W); R = cl(R + pw, W); T = cl(T - ph, H); B = cl(B + ph, H);
+  if (R - L < 90 || B - T < 60) return null;
+
+  if (!hi._d) hi._d = hi.getContext('2d').getImageData(0, 0, W, H).data;
+  const d = hi._d;
+  const ink = (x, y) => { const i = (y * W + x) * 4; return d[i] < 232 || d[i + 1] < 232 || d[i + 2] < 232; };
+  const rowInk = (y, l, r) => { let n = 0; for (let x = l; x < r; x++) if (ink(x, y) && ++n >= 2) return true; return false; };
+  const colInk = (x, t, b) => { let n = 0; for (let y = t; y < b; y++) if (ink(x, y) && ++n >= 2) return true; return false; };
+
+  const T0 = T, B0 = B, L0 = L, R0 = R;
+  const mx = Math.round(W * 0.04), my = Math.round(H * 0.04), st = 3;
+  for (let pass = 0; pass < 3; pass++) {
+    let grew = false;
+    while (T > 0 && T0 - T < my && rowInk(T, L, R))     { T -= st; grew = true; }
+    while (B < H && B - B0 < my && rowInk(B - 1, L, R)) { B += st; grew = true; }
+    T = cl(T, H); B = cl(B, H);
+    while (L > 0 && L0 - L < mx && colInk(L, T, B))     { L -= st; grew = true; }
+    while (R < W && R - R0 < mx && colInk(R - 1, T, B)) { R += st; grew = true; }
+    L = cl(L, W); R = cl(R, W);
+    if (!grew) break;
+  }
+  // ตัดขอบว่างให้กระชับ
+  while (T < B - 20 && !rowInk(T, L, R)) T++;
+  while (B > T + 20 && !rowInk(B - 1, L, R)) B--;
+  while (L < R - 20 && !colInk(L, T, B)) L++;
+  while (R > L + 20 && !colInk(R - 1, T, B)) R--;
+  const m = 14;
+  L = cl(L - m, W); R = cl(R + m, W); T = cl(T - m, H); B = cl(B + m, H);
+
+  const sw = R - L, sh = B - T;
+  if (sw < 90 || sh < 60) return null;
+  const sc = Math.min(1, 1500 / sw);
+  const c  = document.createElement('canvas');
+  c.width = Math.round(sw * sc); c.height = Math.round(sh * sc);
+  c.getContext('2d').drawImage(hi, L, T, sw, sh, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', 0.9);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   AI PROMPT
+   ═══════════════════════════════════════════════════════════════ */
+
+function buildPrompt(startPage, endPage, totalPages, isFirst) {
+  const L = LEVELS[LEVEL] || LEVELS.balanced;
+  return `You are an expert teacher turning document pages ${startPage}–${endPage} (of ${totalPages}) into well-ORGANIZED study notes, like a good slide deck and a good textbook summary. Do NOT just copy text — restructure it so it is easy to learn.
+
+HOW TO WORK: First read ALL the pages in this batch carefully and understand what the author is really teaching: the main ideas, how they connect, and what a student must be able to explain or use. THEN write the notes in your own organized words, the way a good teacher would summarise for a student. Do not go page by page and do not copy sentences. Think silently; output only the JSON.
+
+QUALITY — focus on what matters, leave out the filler:
+• KEEP everything that carries real content: definitions, mechanisms (why/how), criteria and classifications, steps/algorithms, formulas, numbers/doses/cut-offs/lab values, comparisons, key findings, conclusions, and clinically/practically important points.
+• LEAVE OUT filler: introductions or background that teach nothing, "in this chapter we will…", learning-objective boilerplate, history, author/affiliation/acknowledgement/reference lists, repeated statements, generic or obvious sentences, long case narrative that adds no new point, page headers/footers/page numbers.
+• Say each idea ONCE. If a fact appears in several places, write it in one place only.
+• Be COMPLETE on the important ideas but SHORT in wording: each point is one clear, self-contained statement a student can understand without seeing the page.
+
+RULES:
+1. Keep English/technical terms exactly as written. Do not drop any IMPORTANT content (key tables, figures, formulas, numbers) — but follow QUALITY above and skip filler.
+2. Group content by topic into sections. Pages of the same topic = ONE section. Prefer FEWER, BIGGER sections: a section is a major topic that usually spans several pages (aim for about ${L.sections} per 5 pages); sub-headings are concepts, not sections. If the pages continue a topic, use that topic's natural full name.
+3. Inside a section, split the content into "concepts" = sub-topics. Use ${L.concepts} concepts per section; each has a short heading and ${L.points} "points". A point is ONE short bullet (max ~25 words), never a long paragraph; write points in the document's original language and keep technical terms as written. A point may instead be an object {"t": "main point", "sub": ["short sub-point", ...]} when it has real sub-items (causes, types, steps) — max 3 sub-points, use sparingly. Wrap the most important keywords in **double asterisks** (2–4 per bullet at most). Write units, doses and chemistry as plain text (e.g. 0.03 mg/kg, C6H12O6, ×, →); if you need a formula, wrap it in $...$. Never use bare LaTeX commands such as \\text{} or \\times.
+4. "definitions": only the key terms a student must know (max ${L.defs}; term + one-sentence meaning). Skip obvious or everyday words.
+5. "formulas": only the important equations/rules/laws (max ${L.formulas}), with a name and a short note on when to use it.
+6. "examples": only examples that teach something new (max ${L.examples}), summarized in 1–3 sentences. Skip the rest.
+7. "mustKnow": 1–3 sentences = the single most exam-worthy idea of the section.
+8. "tables": only tables that carry real content (max ${L.tables} per section), as markdown following TABLE FORMAT below, with one short description per table in "tableNotes" (same order). "visuals": the IMPORTANT figures/charts/diagrams/tables on the pages (see VISUALS below).
+9. "thaiExplanation": Thai study notes written like a Thai medical/science student's lecture summary. Use natural Thai sentence structure but KEEP EVERY technical term, disease, drug, hormone, abbreviation, lab value and unit in ENGLISH exactly as in the source (e.g. hypoglycemia, glucagon, epinephrine, HAAF, <70 mg/dL) — NEVER transliterate them into Thai script. Explain the meaning, the mechanism (why/how), and the practical/clinical importance, and link ideas together; do not translate word-by-word. ${L.thai} bullets, 1–2 sentences each, separated by \\n (no bullet symbols). Example style: "ผู้ป่วย DM มักเสีย counterregulatory response ทำให้ glucagon และ epinephrine หลั่งลดลง จึงฟื้นตัวจาก hypoglycemia ได้ช้ากว่าคนปกติ"
+10. "keyTakeaways": ${L.takeaways} short bullets to remember (do not repeat the mustKnow or the points word for word). "flashcards": ${L.flash} per section, only for key facts, mix of qa and term.
+11. Write content as a condensed rewrite in your own words; do not copy long passages verbatim. Keep the JSON compact so it is never cut off.
+${isFirst ? '12. Set documentTitle to the main document title if visible, else ""' : '12. Set documentTitle to ""'}
+
+TABLE FORMAT: write every markdown table so it can be read without the original: (a) a header row that names EVERY column — never leave a header blank, keep each header short (max 4 words); (b) exactly ONE line per row — never put a line break inside a cell (separate items inside a cell with "; ") and never use the "|" character inside a cell; (c) the same number of cells in every row as in the header; (d) a separator row such as |---|---| right after the header; (e) if the original has merged or two-level headers, flatten them into single headers like "Group – Sub"; (f) copy numbers, units and terms exactly.
+
+VISUALS: The images are pages ${startPage} to ${endPage} in order (first image = page ${startPage}). For each important figure, chart, diagram, photo that explains a concept, add one item to "visuals" with:
+ - "page": the page number it is on
+ - "kind": "figure" or "table"
+ - "caption": its caption/title (or a short title you write)
+ - "description": 1–2 sentences: what it shows and the takeaway
+ - "box": [ymin, xmin, ymax, xmax] bounding box on THAT page image, integers 0–1000 (0,0 = top-left, 1000,1000 = bottom-right), tightly enclosing the visual INCLUDING its labels, axes, legend and caption. When unsure, make the box slightly LARGER rather than cutting any part off.
+Skip logos, decorative images, icons, headers/footers and page numbers. Max ${L.visuals} per section — only figures/charts/tables that explain a key idea better than words. For a table, use kind "table": its box encloses the original table on the page (with its title), AND write the table's complete content in "tables" too. "page" must be the page where the figure's caption appears. The box must contain only that figure with its own caption, never surrounding body text or other figures.
+
+Return ONLY valid JSON (no code fences, no extra text). Omit empty arrays' content but keep keys:
+{
+  "documentTitle": "",
+  "sections": [
+    {
+      "title": "Section title (original language)",
+      "summary": "1–2 sentence overview of what this section is about",
+      "concepts": [
+        {"heading": "Sub-topic", "points": ["Short bullet with **keyword**", {"t": "Point with detail", "sub": ["sub-point", "sub-point"]}]}
+      ],
+      "definitions": [{"term": "Term", "meaning": "One-sentence definition"}],
+      "formulas": [{"name": "Name", "formula": "E = mc^2", "note": "When/how to use"}],
+      "examples": [{"title": "Short title", "text": "Brief worked example"}],
+      "mustKnow": "The one idea to remember",
+      "tables": ["| H1 | H2 |\\n|----|----|\\n| a | b |"],
+      "tableNotes": ["1–2 sentences: what this table shows and its takeaway (same order as tables)"],
+      "visuals": [{"page": ${startPage}, "kind": "figure", "caption": "Figure 1: ...", "description": "What it shows + takeaway", "box": [100, 120, 450, 880]}],
+      "thaiExplanation": "ข้อ 1\\nข้อ 2\\nข้อ 3",
+      "keyTakeaways": ["Point 1", "Point 2", "Point 3"],
+      "flashcards": [
+        {"type": "qa", "question": "Question?", "answer": "Answer"},
+        {"type": "term", "term": "Term", "definition": "Definition"}
+      ]
+    }
+  ]
+}`;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   API CALLERS
+   ═══════════════════════════════════════════════════════════════ */
+
+function getModel() {
+  const el = document.getElementById('model-input');
+  return ((el && el.value.trim()) || state.model || PROVIDER_MODELS[state.provider]).trim();
+}
+
+function netHint(e) {
+  if (e instanceof TypeError || /^(failed to fetch|load failed|networkerror)/i.test(e.message)) e.message = 'เชื่อมต่อ API ไม่ได้ (Failed to fetch) — ตรวจ: เน็ต / ปิด AdBlock-VPN-Privacy extension / key ถูกต้องไหม / ลองเปิดไฟล์ผ่าน https หรือ localhost';
+  return e;
+}
+
+async function apiError(name, res) {
+  const err = await res.json().catch(() => ({}));
+  const e = new Error(`${name} API error ${res.status}: ${err?.error?.message || res.statusText}`);
+  e.status = res.status;
+  return e;
+}
+
+function extractBase64(dataUrl) {
+  return dataUrl.split(',')[1];
+}
+
+function getMimeType(dataUrl) {
+  return dataUrl.startsWith('data:image/jpeg') ? 'image/jpeg' : 'image/png';
+}
+
+/* ── Gemini ───────────────────────────────────────────────────── */
+async function callGemini(images, prompt) {
+  const first = getModel();
+  const tried = [];
+  const cands = [first, ...GEMINI_PREFERRED.filter(m => m !== first && (!state.geminiModels || state.geminiModels.includes(m)))];
+  let lastErr;
+  for (const m of cands) {
+    tried.push(m);
+    try {
+      let out; try { out = await callGeminiModel(m, images, prompt); } catch (e) { throw netHint(e); }
+      if (m !== first) { const mi = $('model-input'); if (mi && [...mi.options].some(o => o.value === m)) mi.value = m; state.model = m; }
+      return out;
+    } catch (e) {
+      lastErr = e;
+      if (e.status !== 404) throw e;   // model ไม่มี → ลองตัวถัดไป
+    }
+  }
+  lastErr.message += ' (ลองแล้ว: ' + tried.join(', ') + ')';
+  throw lastErr;
+}
+
+async function callGeminiModel(model, images, prompt) {
+  const url   = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(state.apiKey)}`;
+
+  const parts = [{ text: prompt }];
+  for (const img of images) {
+    parts.push({ inline_data: { mime_type: getMimeType(img), data: extractBase64(img) } });
+  }
+
+  const generationConfig = {
+    temperature: 0.2,
+    maxOutputTokens: 32768,
+    responseMimeType: 'application/json',
+  };
+  // 2.5 Flash: ปิด thinking เพื่อไม่ให้กิน token ของ output (Pro ปิดไม่ได้)
+  if (/2\.5-flash/.test(model)) generationConfig.thinkingConfig = { thinkingBudget: 0 };
+
+  const res = await fetch(url, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contents: [{ parts }], generationConfig }),
+  });
+
+  if (!res.ok) throw await apiError('Gemini', res);
+  const data = await res.json();
+  const cand = data.candidates?.[0];
+  if (!cand) throw new Error('Gemini ไม่ส่งผลลัพธ์กลับมา ' + (data.promptFeedback?.blockReason || ''));
+  const text = (cand.content?.parts || []).filter(p => !p.thought).map(p => p.text || '').join('');
+  if (!text.trim()) throw new Error(`Gemini ตอบว่าง (finishReason: ${cand.finishReason || '-'}${data.promptFeedback?.blockReason ? ', blocked: ' + data.promptFeedback.blockReason : ''})`);
+  return text;
+}
+
+/* ── OpenAI ───────────────────────────────────────────────────── */
+async function callOpenAI(images, prompt) {
+  const model = getModel();
+  const content = [{ type: 'text', text: prompt }];
+  for (const img of images) {
+    content.push({ type: 'image_url', image_url: { url: img, detail: 'high' } });
+  }
+
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method:  'POST',
+    headers: {
+      'Content-Type':  'application/json',
+      'Authorization': `Bearer ${state.apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: [{ role: 'user', content }],
+      max_completion_tokens: 8192,
+      temperature: 0.2,
+      response_format: { type: 'json_object' },
+    }),
+  });
+
+  if (!res.ok) throw await apiError('OpenAI', res);
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content || '';
+}
+
+/* ── Claude ───────────────────────────────────────────────────── */
+async function callClaude(images, prompt) {
+  const model   = getModel();
+  const content = [];
+  for (const img of images) {
+    content.push({
+      type: 'image',
+      source: { type: 'base64', media_type: getMimeType(img), data: extractBase64(img) },
+    });
+  }
+  content.push({ type: 'text', text: prompt });
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method:  'POST',
+    headers: {
+      'Content-Type':    'application/json',
+      'x-api-key':       state.apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 8192,
+      messages: [{ role: 'user', content }],
+    }),
+  });
+
+  if (!res.ok) throw await apiError('Claude', res);
+  const data = await res.json();
+  return (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+}
+
+/* ── Dispatcher ───────────────────────────────────────────────── */
+async function callAPI(images, prompt) {
+  switch (state.provider) {
+    case 'gemini': return callGemini(images, prompt);
+    case 'openai': return callOpenAI(images, prompt);
+    case 'claude': return callClaude(images, prompt);
+    default: throw new Error('Unknown provider: ' + state.provider);
+  }
+}
+
+/* ─── JSON Extractor ─────────────────────────────────────────── */
+function extractJSON(text) {
+  text = (text || '').trim();
+  text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '');
+  const start = text.indexOf('{');
+  if (start === -1) throw new Error('ไม่พบ JSON ในคำตอบของ AI — AI ตอบว่า: ' + text.slice(0, 160));
+  const end = text.lastIndexOf('}');
+  return text.slice(start, end + 1);
+}
+
+// พยายามซ่อม JSON ที่ถูกตัดกลางคัน (output เต็ม)
+function parseJSONLoose(str) {
+  try { return JSON.parse(str); } catch (e) {}
+  let t = str.replace(/,\s*$/, '');
+  const stack = []; let inStr = false, esc = false;
+  for (const ch of t) {
+    if (inStr) { if (esc) esc = false; else if (ch === '\\') esc = true; else if (ch === '"') inStr = false; continue; }
+    if (ch === '"') inStr = true;
+    else if (ch === '{' || ch === '[') stack.push(ch);
+    else if (ch === '}' || ch === ']') stack.pop();
+  }
+  if (inStr) t += '"';
+  t = t.replace(/,\s*$/, '');
+  while (stack.length) t += stack.pop() === '{' ? '}' : ']';
+  return JSON.parse(t);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BATCH PROCESSING
+   ═══════════════════════════════════════════════════════════════ */
+
+async function processBatch(pdf, startPage, endPage, totalPages, isFirst) {
+  try {
+    return await processBatchOnce(pdf, startPage, endPage, totalPages, isFirst, 1);
+  } catch (err) {
+    if (startPage === endPage || [400, 401, 403, 404].includes(err.status)) throw err;
+    // ลองใหม่ทีละหน้า
+    const sections = []; let title = '', lastErr = err;
+    for (let p = startPage; p <= endPage; p++) {
+      updateStatus(`ลองทีละหน้า: หน้า ${p}...`);
+      try {
+        const r = await processBatchOnce(pdf, p, p, totalPages, isFirst && p === startPage, 2);
+        title = title || r.documentTitle;
+        sections.push(...r.sections.map(x => x));
+      } catch (e) {
+        if ([400, 401, 403, 404].includes(e.status)) throw e;
+        lastErr = e;
+        sections.push({ title: `Page ${p} (อ่านไม่สำเร็จ)`, content: 'ข้ามหน้านี้: ' + e.message, keyTakeaways: [], flashcards: [] });
+      }
+    }
+    if (sections.every(x => /อ่านไม่สำเร็จ/.test(x.title))) throw lastErr;
+    return { pageRange: `${startPage}–${endPage}`, documentTitle: title, sections };
+  }
+}
+
+async function processBatchOnce(pdf, startPage, endPage, totalPages, isFirst, retries) {
+  // Render pages to base64 images
+  const images = [], pages = [];
+  for (let p = startPage; p <= endPage; p++) {
+    const r = await renderPage(pdf, p);
+    images.push(r.ai); pages.push(r.hi);
+  }
+
+  const prompt = buildPrompt(startPage, endPage, totalPages, isFirst);
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      let rawText; try { rawText = await callAPI(images, prompt); } catch (e) { throw netHint(e); }
+      const parsed  = parseJSONLoose(extractJSON(rawText));
+
+      const sections = parsed.sections || [];
+      for (const sec of sections) {
+        sec.tableNotes = Array.isArray(sec.tableNotes) ? sec.tableNotes.map(x => String(x || '')) : [];
+        sec.visuals = (Array.isArray(sec.visuals) ? sec.visuals : [])
+          .filter(v => v && typeof v === 'object')
+          .map(v => {
+            const idx = parseInt(v.page) - startPage;
+            const valid = idx >= 0 && idx < pages.length;   // page out of this batch → no image (never a neighbour's)
+            let img = null;
+            if (valid) { try { img = cropVisual(pages[idx], v.box); } catch (e) {} }
+            return { kind: v.kind === 'table' ? 'table' : 'figure', page: valid ? startPage + idx : null, caption: v.caption || '', description: v.description || '', img };
+          })
+          .filter(v => v.img || v.description);
+      }
+      pages.length = 0;
+      return {
+        pageRange:     `${startPage}–${endPage}`,
+        documentTitle: parsed.documentTitle || '',
+        sections,
+      };
+    } catch (err) {
+      if (attempt === retries || [400, 401, 403, 404].includes(err.status)) throw err;
+      const wait = err.status === 429 ? 15000 * (attempt + 1) : (attempt + 1) * 2000;
+      updateStatus(`Retrying pages ${startPage}–${endPage} (attempt ${attempt + 2})...`);
+      await new Promise(r => setTimeout(r, wait));
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PROGRESS UI HELPERS
+   ═══════════════════════════════════════════════════════════════ */
+
+function updateProgress(done, total) {
+  const pct = Math.round((done / total) * 100);
+  $('progress-fill').style.width = pct + '%';
+  $('progress-pct').textContent  = pct + '%';
+}
+
+function updateStatus(msg) {
+  const el1 = $('progress-status-text');
+  const el2 = $('progress-detail');
+  if (el1) el1.textContent = msg;
+  if (el2) el2.textContent = msg;
+}
+
+function addBatchLog(msg, status = 'active') {
+  const log  = $('batch-log');
+  const item = document.createElement('div');
+  item.className = `batch-item ${status}`;
+  item.innerHTML = `<span class="batch-status">${status === 'done' ? '✅' : '🔄'}</span> ${msg}`;
+  log.appendChild(item);
+  log.scrollTop = log.scrollHeight;
+  return item;
+}
+
+function completeBatchLog(item, pageRange) {
+  item.className  = 'batch-item done';
+  item.innerHTML  = `<span class="batch-status">✅</span> Pages ${pageRange} — extracted`;
+}
+
+function showError(msg) {
+  const el = $('error-toast');
+  $('error-text').textContent = msg;
+  el.classList.add('show');
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function hideError() {
+  $('error-toast').classList.remove('show');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MAIN ORCHESTRATOR
+   ═══════════════════════════════════════════════════════════════ */
+
+const ETA = { t0: 0, total: 0, done: 0, curStart: 0, durs: [], timer: null, bs: 3 };
+function fmtDur(ms) {
+  const s = Math.max(0, Math.round(ms / 1000));
+  if (s < 60) return s + ' วินาที';
+  const m = Math.floor(s / 60), r = s % 60;
+  return m + ' นาที' + (r >= 5 ? ' ' + r + ' วินาที' : '');
+}
+function estimateMs(pages, bs) { return Math.ceil(Math.ceil(pages / bs) / CONCURRENCY) * (8000 + 5000 * bs); }
+function etaTick() {
+  const el = $('progress-eta'); if (!el) return;
+  const now = Date.now();
+  const avg = ETA.durs.length ? ETA.durs.reduce((a, b) => a + b, 0) / ETA.durs.length : 8000 + 5000 * ETA.bs;
+  const remaining = ETA.total - ETA.done;
+  const inCur = now - ETA.curStart;
+  const eta = remaining <= 0 ? 0 : avg * (remaining - 1) / (ETA.par || 1) + Math.max(avg - inCur, 5000);
+  el.textContent = `⏱️ ผ่านไป ${fmtDur(now - ETA.t0)} · ` +
+    (remaining <= 0 ? 'กำลังสรุปผล...' : `เหลืออีกประมาณ ${eta < 8000 ? 'ไม่กี่วินาที' : fmtDur(eta)}`) +
+    ` · batch ${Math.min(ETA.done + 1, ETA.total)}/${ETA.total}` + (ETA.durs.length ? '' : ' (ค่าประมาณเบื้องต้น)');
+}
+function startETA(total, bs) {
+  clearInterval(ETA.timer);
+  Object.assign(ETA, { t0: Date.now(), total, done: 0, curStart: Date.now(), durs: [], bs });
+  etaTick(); ETA.timer = setInterval(etaTick, 1000);
+}
+function stopETA() { clearInterval(ETA.timer); }
+
+async function processAllBatches(pdf) {
+  const totalPages = pdf.numPages;
+
+  // Build batch ranges
+  const ranges = [];
+  BATCH_SIZE = parseInt(($('batch-input') || {}).value) || 5;
+  CONCURRENCY = parseInt(($('concurrency-input') || {}).value) || 2;
+  LEVEL = ($('level-input') || {}).value || 'balanced';
+  for (let start = 1; start <= totalPages; start += BATCH_SIZE) {
+    const end = Math.min(start + BATCH_SIZE - 1, totalPages);
+    ranges.push({ start, end });
+  }
+
+  startETA(ranges.length, BATCH_SIZE);
+  ETA.par = CONCURRENCY;
+  updateProgress(0, ranges.length);
+  updateStatus(`Starting — ${totalPages} pages in ${ranges.length} batches (ทีละ ${CONCURRENCY})`);
+
+  const results = new Array(ranges.length);   // เก็บตามลำดับหน้า ไม่ว่าจะเสร็จก่อนหลัง
+  const running = new Map();                  // index → เวลาเริ่ม
+  let next = 0, done = 0, fatal = null;
+
+  const worker = async () => {
+    while (!fatal && next < ranges.length) {
+      const i = next++;
+      const { start, end } = ranges[i];
+      const t0 = Date.now();
+      running.set(i, t0);
+      ETA.curStart = Math.min(...running.values());
+      const logItem = addBatchLog(`Pages ${start}–${end} — analyzing...`);
+      updateStatus(`Analyzing pages ${start}–${end} of ${totalPages}...`);
+
+      try {
+        results[i] = await processBatch(pdf, start, end, totalPages, i === 0);
+        completeBatchLog(logItem, `${start}–${end}`);
+      } catch (err) {
+        logItem.className = 'batch-item';
+        logItem.innerHTML = `<span class="batch-status">❌</span> Pages ${start}–${end} failed: ${err.message}`;
+        if ([400, 401, 403, 404].includes(err.status)) fatal = err;  // key/model ผิด — หยุดทุก worker
+      }
+
+      running.delete(i);
+      ETA.durs.push(Date.now() - t0);
+      ETA.done = ++done;
+      if (running.size) ETA.curStart = Math.min(...running.values());
+      etaTick();
+      updateProgress(done, ranges.length);
+    }
+  };
+
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, ranges.length) }, worker));
+  stopETA();
+  if (fatal) throw fatal;
+
+  const batches = results.filter(Boolean);     // ลำดับเดิม: หน้า 1 มาก่อนเสมอ
+  if (batches.length === 0) throw new Error('ทุก batch ล้มเหลว — ตรวจ API Key / ชื่อ model / โควต้า');
+  const documentTitle = (batches.find(b => b.documentTitle) || {}).documentTitle || '';
+
+  return {
+    title:      documentTitle || state.pdfFile.name.replace(/\.pdf$/i, ''),
+    totalPages,
+    batches,
+    level: LEVEL,
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   STATS CALCULATION
+   ═══════════════════════════════════════════════════════════════ */
+
+function calcStats(masterData) {
+  let sections   = 0;
+  let takeaways  = 0;
+  let flashcards = 0;
+
+  for (const batch of masterData.batches) {
+    for (const sec of batch.sections || []) {
+      sections++;
+      takeaways  += (sec.keyTakeaways || []).length;
+      flashcards += (sec.flashcards   || []).length;
+    }
+  }
+  return { sections, takeaways, flashcards };
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   UI FLOW
+   ═══════════════════════════════════════════════════════════════ */
+
+function showView(view) {
+  $('upload-view').style.display      = view === 'upload'   ? 'block' : 'none';
+  const prog = $('progress-section');
+  const res  = $('results-section');
+  prog.style.display = view === 'progress' ? 'block' : 'none';
+  res.style.display  = view === 'results'  ? 'block' : 'none';
+  if (view === 'progress') prog.classList.add('show');
+  if (view === 'results')  res.classList.add('show');
+}
+
+async function startProcessing() {
+  if (!state.pdfFile) {
+    showError('Please upload a PDF file first.'); return;
+  }
+  if (!state.apiKey.trim()) {
+    showError('Please enter your API key first.'); return;
+  }
+  hideError();
+
+  state.processing = true;
+  $('process-btn').disabled = true;
+  showView('progress');
+
+  // Clear log
+  $('batch-log').innerHTML = '';
+
+  try {
+    updateStatus('Loading PDF...');
+    const pdf = await loadPDF(state.pdfFile);
+    state.pdfDoc = pdf;
+
+    const masterData = await processAllBatches(pdf);
+    state.masterData = masterData;
+
+    // Show results
+    const stats = calcStats(masterData);
+    $('stat-sections').textContent   = stats.sections;
+    $('stat-takeaways').textContent  = stats.takeaways;
+    $('stat-flashcards').textContent = stats.flashcards;
+    $('results-title-text').textContent = masterData.title;
+
+    updateStatus('Done! All content extracted.');
+    showView('results');
+
+  } catch (err) {
+    showView('upload');
+    showError('Processing failed: ' + err.message);
+    console.error(err);
+  } finally {
+    stopETA();
+    state.processing = false;
+    $('process-btn').disabled = false;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EVENT LISTENERS (called from index.html after DOM ready)
+   ═══════════════════════════════════════════════════════════════ */
+
+function initApp() {
+  // Model input override
+  const modelInput = $('model-input');
+  if (modelInput) {
+    modelInput.addEventListener('change', e => {
+      state.model = e.target.value.trim();
+    });
+  }
+
+  // Provider tabs
+  document.querySelectorAll('.provider-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.provider-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      state.provider = tab.dataset.provider;
+      state.model    = '';
+      const kh = {gemini:'AIzaSy...',openai:'sk-...',claude:'sk-ant-...'}; $('api-key-input').placeholder = kh[state.provider];
+      updateModelHint();
+      // Update model input placeholder
+      setModelOptions(STATIC_MODELS[state.provider], PROVIDER_MODELS[state.provider]);
+    });
+  });
+
+  // Access code: ถ้าพิมพ์รหัส Lift ให้เติม API key ให้อัตโนมัติ
+  const ACCESS_CODES = { 'lift': 'AQ.Ab8RN6LSFLrQtLo8KgOATqOnNf6jzK_Fof9BCRYGKFiMyjnIPQ' };
+  $('access-code-input').addEventListener('input', e => {
+    const key = ACCESS_CODES[e.target.value.trim().toLowerCase()];
+    if (!key) return;
+    $('api-key-input').value = key;
+    state.apiKey = key;
+    clearTimeout(window._mt); loadGeminiModels();
+  });
+
+  // API key input
+  $('api-key-input').addEventListener('input', e => {
+    state.apiKey = e.target.value.trim();
+    clearTimeout(window._mt); window._mt = setTimeout(loadGeminiModels, 600);
+  });
+
+  // Toggle key visibility
+  $('toggle-key-btn').addEventListener('click', () => {
+    const inp  = $('api-key-input');
+    const icon = $('toggle-key-icon');
+    if (inp.type === 'password') {
+      inp.type    = 'text';
+      icon.textContent = '🙈';
+    } else {
+      inp.type    = 'password';
+      icon.textContent = '👁️';
+    }
+  });
+
+  // Upload zone — click
+  $('upload-zone').addEventListener('click', e => { if (e.target.closest('label')) return; $('pdf-input').click(); });
+
+  // Upload zone — drag & drop
+  const zone = $('upload-zone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', ()  => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f && (f.type === 'application/pdf' || /\.pdf$/i.test(f.name))) setFile(f);
+    else showError('Please drop a PDF file.');
+  });
+
+  // File input
+  $('pdf-input').addEventListener('change', e => {
+    const f = e.target.files[0];
+    if (f) setFile(f);
+  });
+
+  // Remove file
+  $('file-remove').addEventListener('click', e => {
+    e.stopPropagation();
+    clearFile();
+  });
+
+  // Process button
+  $('process-btn').addEventListener('click', startProcessing);
+
+  // Download buttons
+  $('dl-document').addEventListener('click', () => { if (state.masterData) downloadDocument(state.masterData); });
+  $('dl-slides').addEventListener('click',   () => { if (state.masterData) downloadSlides(state.masterData); });
+  $('dl-anki').addEventListener('click',     () => { if (state.masterData) downloadAnki(state.masterData); });
+  $('dl-quizlet').addEventListener('click',  () => { if (state.masterData) downloadQuizlet(state.masterData); });
+  $('dl-all').addEventListener('click',      () => { if (state.masterData) downloadAll(state.masterData); });
+
+  // Restart
+  $('btn-restart').addEventListener('click', () => {
+    clearFile();
+    state.masterData = null;
+    $('batch-log').innerHTML = '';
+    hideError();
+    showView('upload');
+  });
+
+  // Init
+  setModelOptions(STATIC_MODELS.gemini, PROVIDER_MODELS.gemini);
+  $('test-btn').addEventListener('click', testConnection);
+  $('batch-input').addEventListener('change', updateFileEstimate);
+  $('concurrency-input').addEventListener('change', updateFileEstimate);
+  updateModelHint();
+  showView('upload');
+}
+
+function setFile(file) {
+  state.pdfFile = file;
+  $('file-name').textContent = file.name;
+  $('file-meta').textContent = formatBytes(file.size) + ' • PDF';
+  $('file-preview').classList.add('show');
+  $('process-btn').disabled = false;
+  hideError();
+  state.numPages = 0;
+  loadPDF(file).then(p => { if (state.pdfFile === file) { state.numPages = p.numPages; updateFileEstimate(); } }).catch(() => {});
+}
+
+function updateFileEstimate() {
+  if (!state.pdfFile || !state.numPages) return;
+  const bs = parseInt(($('batch-input') || {}).value) || 5;
+  CONCURRENCY = parseInt(($('concurrency-input') || {}).value) || 2;
+  $('file-meta').textContent = formatBytes(state.pdfFile.size) + ' • ' + state.numPages + ' หน้า • ใช้เวลาประมาณ ' + fmtDur(estimateMs(state.numPages, bs));
+}
+
+function clearFile() {
+  state.pdfFile = null;
+  $('pdf-input').value = '';
+  $('file-preview').classList.remove('show');
+}
+
+function formatBytes(bytes) {
+  if (bytes < 1024)       return bytes + ' B';
+  if (bytes < 1048576)    return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+function updateModelHint() {
+  const hints = {
+    gemini: '🤖 Default: <strong>gemini-3.5-flash-lite</strong> — ฟรี, รองรับรูปภาพ, ระบบจะดึงรายชื่อ model ที่ key ของคุณใช้ได้ให้อัตโนมัติ <a href="https://aistudio.google.com/apikey" target="_blank" style="color:inherit">Get key →</a>',
+    openai: '🤖 Default: <strong>gpt-4o</strong> — Best accuracy. Requires paid OpenAI API access.',
+    claude: '🤖 Default: <strong>claude-sonnet-4-5</strong> — Excellent at document analysis.',
+  };
+  $('model-hint').innerHTML = hints[state.provider] || '';
+}
+
+</script>
+<script>
+  // Initialize app when DOM is ready
+  document.addEventListener('DOMContentLoaded', initApp);
+</script>
+</body>
+</html>
